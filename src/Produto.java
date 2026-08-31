@@ -7,6 +7,10 @@ public class Produto {
     // utilizada em cada tipo de Produto
     private MateriaPrima materiaPrima;
 
+    // No construtor, nao recebemos status de fora (todos Produto começam com
+    // AGUARDANDO_PROCESSAMENTO). materiaPrima também não é atribuída aqui, apenas
+    // durante o processamento (processar), para garantir rastreabilidade do tipo
+    // de materia-prima utilizada em cada produto
     public Produto(
             String id, String nome, int quantidadeMateriaPrimaNecessaria) {
         this.id = id;
@@ -15,4 +19,12 @@ public class Produto {
         this.quantidadeMateriaPrimaNecessaria = quantidadeMateriaPrimaNecessaria;
     }
 
+    public boolean processar(MateriaPrima materiaPrima) {
+        if (status == StatusProduto.AGUARDANDO_PROCESSAMENTO && materiaPrima != null) {
+            this.materiaPrima = materiaPrima;
+            status = StatusProduto.PROCESSADO;
+            return true;
+        }
+        return false;
+    }
 }
