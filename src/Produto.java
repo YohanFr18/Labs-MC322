@@ -27,4 +27,14 @@ public class Produto {
         }
         return false;
     }
+
+    public boolean definirDemandaMateriaPrima(int demanda) {
+        if (demanda <= 0) {
+            return false;
+        }
+        quantidadeMateriaPrimaNecessaria = demanda;
+        return true;
+
+    }
+
 }
