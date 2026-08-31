@@ -36,4 +36,16 @@ public class MateriaPrima {
         }
         return (demanda <= quantidade && quantidade - demanda >= quantidadeMinima);
     }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public int getQuantidade() {
+        return quantidade;
+    }
 }
