@@ -34,6 +34,8 @@ public class MateriaPrima {
         if (demanda <= 0) {
             return false;
         }
+        // Verificamos a quantidadeMinima para garantir um "estoque de segurança"
+        // ou seja, após a produção, ainda sobrará, pelo menos, a quantidadeMinima
         return (demanda <= quantidade && quantidade - demanda >= quantidadeMinima);
     }
 
@@ -47,5 +49,9 @@ public class MateriaPrima {
 
     public int getQuantidade() {
         return quantidade;
+    }
+
+    public String getUnidade() {
+        return unidade;
     }
 }
