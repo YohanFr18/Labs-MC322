@@ -37,4 +37,24 @@ public class Produto {
 
     }
 
+    public int getDemandaMateriaPrima() {
+        return quantidadeMateriaPrimaNecessaria;
+    }
+
+    public String getId() {
+        return id;
+    }
+
+    public String getNome() {
+        return nome;
+    }
+
+    public StatusProduto getStatus() {
+        return status;
+    }
+
+    public MateriaPrima getMateriaPrima() {
+        return materiaPrima;
+    }
+
 }
