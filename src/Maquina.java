@@ -9,4 +9,11 @@ public class Maquina {
         this.capacidadeMaxima = capacidadeMaxima;
     }
 
+    public void ligar() {
+        ligada = true;
+    }
+    public void desligar() {
+        ligada = false;
+    }
+    public processar(MateriaPrima materiaPrima, Produto )
 }
