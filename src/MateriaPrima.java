@@ -29,4 +29,11 @@ public class MateriaPrima {
         quantidade += quantidadeAdicionada;
         return true;
     }
+
+    public boolean verificarDisponibilidade(int demanda) {
+        if (demanda <= 0) {
+            return false;
+        }
+        return (demanda <= quantidade && quantidade - demanda >= quantidadeMinima);
+    }
 }
