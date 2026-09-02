@@ -28,6 +28,14 @@ public class Produto {
         return false;
     }
 
+    public boolean inspecionar() {
+        if (status != StatusProduto.PROCESSADO) {
+            return false;
+        }
+        status = StatusProduto.INSPECIONADO;
+
+        return true;
+    }
     public boolean definirDemandaMateriaPrima(int demanda) {
         if (demanda <= 0) {
             return false;
