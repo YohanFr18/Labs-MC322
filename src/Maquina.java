@@ -36,4 +36,13 @@ public class Maquina {
 
         return produto.processar(materiaPrima);
     }
+
+    public String getNome() {
+        return nome;
+
+    }
+
+    public boolean estaLigada() {
+        return ligada;
+    }
 }
