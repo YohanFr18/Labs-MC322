@@ -21,19 +21,25 @@ public class Maquina {
         if (!ligada) {
             return false;
         }
+        if (materiaPrima == null || produto == null) {
+            return false;
+        }
         if (demanda > capacidadeMaxima) {
             return false;
         }
-
-        // Matéria-prima é gasta do estoque
+        // Valida o produto antes de consumir a matéria-prima, para não gastar
+        // estoque num produto que já foi processado/inspecionado
+        if (produto.getStatus() != StatusProduto.AGUARDANDO_PROCESSAMENTO) {
+            return false;
+        }
         if (!materiaPrima.verificarDisponibilidade(demanda)) {
             return false;
         }
-        // O produto vira PROCESSADO e registra a origem
+
+        // Consome a matéria-prima do estoque e transforma o produto
         if (!materiaPrima.consumir(demanda)) {
             return false;
         }
-
         return produto.processar(materiaPrima);
     }
 

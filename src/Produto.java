@@ -36,6 +36,14 @@ public class Produto {
 
         return true;
     }
+
+    // Recoloca o produto na fila de produção
+    // o mesmo objeto é reutilizado a cada produção, então precisa voltar ao estado inicial)
+    public void reiniciarProducao() {
+        status = StatusProduto.AGUARDANDO_PROCESSAMENTO;
+        materiaPrima = null;
+    }
+
     public boolean definirDemandaMateriaPrima(int demanda) {
         if (demanda <= 0) {
             return false;

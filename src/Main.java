@@ -4,6 +4,10 @@ public class Main {
     static int lerInteiro(Scanner sc, String msg) {
         System.out.print(msg);
         while (!sc.hasNextInt()) {
+            if (!sc.hasNext()) { // entrada encerrada (EOF / Ctrl+D)
+                System.out.println("\nEntrada encerrada. Fechando a fábrica.");
+                System.exit(0);
+            }
             System.out.println("Digite apenas números.");
             sc.next();
             System.out.print(msg);
@@ -73,7 +77,14 @@ public class Main {
                     continue;
                 }
 
+                // Recoloca o modelo na fila (o mesmo objeto é reutilizado a cada produção)
+                produto.reiniciarProducao();
+
                 int demanda = lerInteiro(sc, "Informe a demanda de wafer (mm2): ");
+                if (demanda <= 0) {
+                    System.out.println("[FAIL] A demanda deve ser um número positivo.");
+                    continue;
+                }
                 System.out.println("[OK] Verificando disponibilidade de Wafer de Silício...");
                 // Verificação de estoque da fábrica (insuficiente ou abaixo do limite)
                 if (!wafer.verificarDisponibilidade(demanda)) {
@@ -83,6 +94,9 @@ public class Main {
                 System.out.println("[OK] Demanda de " + demanda + " mm² pode ser atendida (estoque atual: "
                         + wafer.getQuantidade() + " mm²).");
 
+                // Registra no produto a demanda definida pelo usuário para esta produção
+                produto.definirDemandaMateriaPrima(demanda);
+
                 // Ligando a esteira, a máquina e ativando a estação de inspeção
                 esteira.ligar();
                 maquina.ligar();
@@ -91,7 +105,10 @@ public class Main {
                 System.out.println("[OK] " + maquina.getNome() + " ligada.");
 
                 // Etapa de transporte da matéria-prima, pela esteira, até a máquina
-                esteira.adicionarItem(wafer, demanda);
+                if (!esteira.adicionarItem(wafer, demanda)) {
+                    System.out.println("[FAIL] Esteira não aceitou a matéria-prima.");
+                    continue;
+                }
                 MateriaPrima mp = (MateriaPrima) esteira.removerItem();
 
                 System.out.println("[OK] " + wafer.getNome() + " colocado na esteira.");
@@ -111,7 +128,10 @@ public class Main {
                         "[OK] Produto " + produto.getId() + " " + produto.getNome()
                                 + " transportado para a inspeção final.");
                 System.out.println("[OK] Estação de inspeção ativada.");
-                esteira.adicionarItem(produto, demanda);
+                if (!esteira.adicionarItem(produto, demanda)) {
+                    System.out.println("[FAIL] Esteira não aceitou o produto.");
+                    continue;
+                }
                 Produto p = (Produto) esteira.removerItem();
 
                 // Etapa de inspeção do produto
