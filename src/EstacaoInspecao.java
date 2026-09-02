@@ -19,12 +19,16 @@ public class EstacaoInspecao {
         ativa = false;
     }
 
-    public boolean inspecionar(String produto) {
+    public boolean inspecionar(Produto produto) {
         if (!ativa) {
             return false;
         }
 
         if (produto == null) {
+            return false;
+        }
+
+        if (!produto.inspecionar()) {
             return false;
         }
 
