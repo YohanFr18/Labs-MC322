@@ -1,5 +1,9 @@
 public class Esteira {
-    private String item;
+    // Item como Object e Main.java faz casting, apenas durante a Tarefa 1
+    // Um item pode ser um objeto MateriaPrima ou um objeto Produto
+    // Sem interface comum ainda, o melhor é generalizar o type de item para Object
+    // e lidar com isso na Main.java
+    private Object item;
     private boolean emMovimento;
     private int capacidadeMaxima;
 
@@ -22,7 +26,12 @@ public class Esteira {
         return demanda <= capacidadeMaxima;
     }
 
-    public boolean adicionarItem(String novoItem, int demanda) {
+    public boolean adicionarItem(Object novoItem, int demanda) {
+        // Item parado não é transportado
+        if (!emMovimento) {
+            return false;
+        }
+
         if (item != null) {
             return false;
         }
@@ -35,17 +44,17 @@ public class Esteira {
         return true;
     }
 
-    public String removerItem() {
+    public Object removerItem() {
         if (item == null) {
             return null;
         }
 
-        String itemRemovido = item;
+        Object itemRemovido = item;
         item = null;
         return itemRemovido;
     }
 
-    public String getItem() {
+    public Object getItem() {
         return item;
     }
 
@@ -53,7 +62,7 @@ public class Esteira {
         return emMovimento;
     }
 
-    public double getCapacidadeMaxima() {
+    public int getCapacidadeMaxima() {
         return capacidadeMaxima;
     }
 }
