@@ -4,8 +4,7 @@ public class EstacaoInspecao {
     private int produtosInspecionados;
 
     // Construtor
-    public EstacaoInspecao() {
-        ativa = false;
+    public EstacaoInspecao() { ativa = false;
         produtosInspecionados = 0;
     }
 
