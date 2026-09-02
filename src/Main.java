@@ -54,13 +54,13 @@ public class Main {
             int opcao = lerInteiro(sc, "Escolha: ");
             if (opcao == 1) {
                 System.out.println("""
-                                1 - Turing-X4    (demanda: 120 mm²)
-                                2 - Lovelace-X8  (demanda: 320 mm²)
-                                3 - Torvalds-X16 (demanda: 640 mm²)
+                        1 - Turing-X4    (demanda: 120 mm²)
+                        2 - Lovelace-X8  (demanda: 320 mm²)
+                        3 - Torvalds-X16 (demanda: 640 mm²)
                         """);
 
                 // Escolha do modelo a ser produzido
-                int escolha = lerInteiro(sc, "Modelo (1-3): ");
+                int escolha = lerInteiro(sc, "Selecione o modelo (1-3): ");
                 Produto produto;
                 if (escolha == 1) {
                     produto = turing;
@@ -73,41 +73,61 @@ public class Main {
                     continue;
                 }
 
-                int demanda = lerInteiro(sc, "Demanda de wafer (mm2): ");
+                int demanda = lerInteiro(sc, "Informe a demanda de wafer (mm2): ");
+                System.out.println("[OK] Verificando disponibilidade de Wafer de Silício...");
                 // Verificação de estoque da fábrica (insuficiente ou abaixo do limite)
                 if (!wafer.verificarDisponibilidade(demanda)) {
-                    System.out.println("Estoque insuficiente ou abaixo do mínimo de segurança.");
+                    System.out.println("[FAIL] Estoque insuficiente ou abaixo do mínimo de segurança.");
                     continue;
                 }
+                System.out.println("[OK] Demanda de " + demanda + " mm² pode ser atendida (estoque atual: "
+                        + wafer.getQuantidade() + " mm²).");
 
                 // Ligando a esteira, a máquina e ativando a estação de inspeção
                 esteira.ligar();
                 maquina.ligar();
                 estacaoInspecao.ativar();
+                System.out.println("[OK] Esteira ligada.");
+                System.out.println("[OK] " + maquina.getNome() + " ligada.");
 
                 // Etapa de transporte da matéria-prima, pela esteira, até a máquina
                 esteira.adicionarItem(wafer, demanda);
                 MateriaPrima mp = (MateriaPrima) esteira.removerItem();
 
+                System.out.println("[OK] " + wafer.getNome() + " colocado na esteira.");
+                System.out.println("[OK] Matéria-prima transportada até a máquina.");
+
                 // Etapa de processamento do produto
+                System.out.println("[OK] " + maquina.getNome() + " processando " + demanda + " mm² de silício...");
                 if (!maquina.processar(mp, produto, demanda)) {
-                    System.out.println("Falha no processamento.");
+                    System.out.println("[FAIL] Falha no processamento.");
                     continue;
                 }
 
+                System.out.println("[OK] Produto " + produto.getId() + " " + produto.getNome() + " criado.");
+
                 // Etapa de transporte do produto, pela esteira, até a estação de inspeção
+                System.out.println(
+                        "[OK] Produto " + produto.getId() + " " + produto.getNome()
+                                + " transportado para a inspeção final.");
+                System.out.println("[OK] Estação de inspeção ativada.");
                 esteira.adicionarItem(produto, demanda);
                 Produto p = (Produto) esteira.removerItem();
 
                 // Etapa de inspeção do produto
                 if (!estacaoInspecao.inspecionar(p)) {
-                    System.out.println("Falha na inspeção.");
+                    System.out.println("[FAIL] Falha na inspeção.");
                     continue;
                 }
 
                 // Finalizado, produção concluída com sucesso
-                System.out.println(p.getNome() + " aprovado. Origem: " + p.getMateriaPrima().getId());
-                System.out.println("Estoque restante: " + wafer.getQuantidade() + " " + wafer.getUnidade());
+                System.out.println("[OK] " + produto.getId() + " " + produto.getNome() + " aprovado na inspeção.");
+                System.out.println("""
+                        ========================================
+                        PRODUÇÃO CONCLUÍDA COM SUCESSO
+                        ========================================""");
+                System.out.println("Estoque restante de " + wafer.getNome() + ": "
+                        + wafer.getQuantidade() + " " + wafer.getUnidade());
 
             } else if (opcao == 2) {
                 System.out.println(wafer.getNome() + ": " + wafer.getQuantidade() + " " + wafer.getUnidade());
