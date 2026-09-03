@@ -1,0 +1,66 @@
+JUSTIFICATIVA DO PROJETO - SMART FOUNDRY
+Victor Rimes e Yohan Rocha
+
+
+1. ESCOLHA DO TEMA E CONTEXTUALIZAÇÃO
+Para esta primeira etapa da disciplina, optamos por modelar uma fábrica de
+semicondutores e microprocessadores: a "SMART FOUNDRY - Da areia ao algoritmo".
+A escolha deste tema foi motivada pelo nosso interesse conjunto na área de
+arquitetura de computadores, hardware e automação de alta precisão.
+
+Diferente de plantas industriais tradicionais baseadas em peso simples ou volume
+líquido, uma fundição de silício usa a área superficial dos wafers em milímetros
+quadrados (mm²) como métrica de matéria prima. O tema nos permitiu criar uma linha
+de produção coesa e tecnicamente envolvente, na qual wafers brutos de silício (SIW-001)
+são transformados em circuitos integrados de alta performance que homenageiam
+pioneiros da computação: Turing-X4, Lovelace-X8 e Torvalds-X16.
+
+2. DECISÕES DE DESIGN E MODELAGEM ORIENTADA A OBJETOS
+Buscando manter o código simples adotamos decisões centrais de encapsulamento
+e integridade de domínio:
+
+Enum:
+  Criamos o enum StatusProduto para mapear os estados do ciclo
+  de vida de cada unidade (AGUARDANDO_PROCESSAMENTO, PROCESSADO, INSPECIONADO).
+  Isso impede que uma máquina consuma matéria-prima desnecessariamente em um
+  produto que já foi processado ou inspecionado.
+
+Rastreabilidade:
+  Na classe Produto, associamos uma referência à instância de MateriaPrima
+  consumida durante a fabricação, garantindo a rastreabilidade de
+  lote requerida pelo processo produtivo.
+
+Controle de Estoque:
+  A classe MateriaPrima não apenas valida se há estoque suficiente para a
+  demanda, mas também aplica a regra do quantidadeMinima, garantindo que o
+  estoque nunca caia abaixo de um nível mínimo de segurança.
+
+Proteção de Entrada e Estados Físicos:
+  Centralizamos a leitura numérica no método lerInteiro na classe Main,
+  evitando travamentos por exceções de entrada ou loops infinitos de
+  leitura. Além disso, os métodos de Maquina, Esteira e EstacaoInspecao
+  recusam qualquer operação se os equipamentos estiverem desligados/desativados
+  ou acima de suas capacidades.
+
+3. VISÃO DE EXPANSÃO FUTURA
+Projetamos a fundição pensando nas próximas tarefas e na introdução gradual de
+novos conceitos de POO:
+
+Tarefa 2:
+  Prevemos a criação de uma classe abstrata Equipamento para unificar
+  propriedades comuns compartilhadas por Maquina, Esteira e EstacaoInspecao.
+  Da mesma forma, Item poderá abstrair comportamentos entre matéria-prima e produtos finais.
+
+Etapas Reais de Fotolitografia e Dopagem:
+  Planejamos expandir o ciclo produtivo dividindo a máquina genérica em módulos
+  especializados: Estação de Oxidação/Deposição, Fotolitografia UV, Gravação
+  Química (Etching) e Encapsulamento Final.
+
+Controle de Defeitos e Rendimento:
+  A EstacaoInspecao, que atualmente apenas valida a integridade sequencial,
+  poderá incluir lógicas probabilísticas de tolerância de falhas, rejeição de
+  chips com defeito.
+
+Múltiplas Linhas e Paralelismo:
+  A inclusão de múltiplas esteiras simultâneas para alimentar diferentes lotes de processadores ao
+  mesmo tempo.
