@@ -23,15 +23,6 @@ public abstract class Produto {
 
     public abstract String getTipo();
 
-    public boolean inspecionar() {
-        if (status != StatusProduto.PROCESSADO) {
-            return false;
-        }
-        status = StatusProduto.INSPECIONADO;
-
-        return true;
-    }
-
     public void aumentarProbabilidadeFalha(float probabilidadeFalha) {
         probabilidadeFalhaAcumulada += probabilidadeFalha;
         if (probabilidadeFalhaAcumulada >= 1.0f) {
