@@ -32,6 +32,13 @@ public abstract class Produto {
         return true;
     }
 
+    public void aumentarProbabilidadeFalha(float probabilidadeFalha) {
+        probabilidadeFalhaAcumulada += probabilidadeFalha;
+        if (probabilidadeFalhaAcumulada >= 1.0f) {
+            probabilidadeFalhaAcumulada = 1.0f;
+        }
+    }
+
     public int getQuantidadeMateriaPrimaPorUnidade() {
         return quantidadeMateriaPrimaPorUnidade;
     }
@@ -50,5 +57,9 @@ public abstract class Produto {
 
     public float getQualidade() {
         return qualidade;
+    }
+
+    public void setStatus(StatusProduto status) {
+        this.status = status;
     }
 }
