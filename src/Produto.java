@@ -9,7 +9,7 @@ public abstract class Produto {
 
     public Produto(
             String nome, int quantidadeMateriaPrimaPorUnidade, float qualidade) {
-        this.totalProdutosFabricados += 1;
+        Produto.totalProdutosFabricados += 1;
         this.id = "CPU-" + totalProdutosFabricados;
         this.nome = nome;
         this.status = StatusProduto.AGUARDANDO_PROCESSAMENTO;
