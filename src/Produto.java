@@ -1,32 +1,27 @@
-public class Produto {
+public abstract class Produto {
     private String id;
     private String nome;
     private StatusProduto status;
     private int quantidadeMateriaPrimaNecessaria;
-    // Atributo materiaPrima criado para permitir rastrear a materia-prima
-    // utilizada em cada tipo de Produto
-    private MateriaPrima materiaPrima;
+    private float qualidade;
+    private float probabilidadeFalhaAcumulada;
+    private static int totalProdutosFabricados;
 
-    // No construtor, nao recebemos status de fora (todos Produto começam com
-    // AGUARDANDO_PROCESSAMENTO). materiaPrima também não é atribuída aqui, apenas
-    // durante o processamento (processar), para garantir rastreabilidade do tipo
-    // de materia-prima utilizada em cada produto
     public Produto(
-            String id, String nome, int quantidadeMateriaPrimaNecessaria) {
-        this.id = id;
+            String nome, int quantidadeMateriaPrimaNecessaria, float qualidade) {
+        this.totalProdutosFabricados += 1;
+        this.id = "CPU-" + totalProdutosFabricados;
         this.nome = nome;
         this.status = StatusProduto.AGUARDANDO_PROCESSAMENTO;
         this.quantidadeMateriaPrimaNecessaria = quantidadeMateriaPrimaNecessaria;
+        this.qualidade = qualidade;
     }
 
-    public boolean processar(MateriaPrima materiaPrima) {
-        if (status == StatusProduto.AGUARDANDO_PROCESSAMENTO && materiaPrima != null) {
-            this.materiaPrima = materiaPrima;
-            status = StatusProduto.PROCESSADO;
-            return true;
-        }
-        return false;
-    }
+    public abstract boolean processar();
+
+    public abstract int calcularTempoProducao();
+
+    public abstract String getTipo();
 
     public boolean inspecionar() {
         if (status != StatusProduto.PROCESSADO) {
@@ -35,22 +30,6 @@ public class Produto {
         status = StatusProduto.INSPECIONADO;
 
         return true;
-    }
-
-    // Recoloca o produto na fila de produção
-    // o mesmo objeto é reutilizado a cada produção, então precisa voltar ao estado inicial)
-    public void reiniciarProducao() {
-        status = StatusProduto.AGUARDANDO_PROCESSAMENTO;
-        materiaPrima = null;
-    }
-
-    public boolean definirDemandaMateriaPrima(int demanda) {
-        if (demanda <= 0) {
-            return false;
-        }
-        quantidadeMateriaPrimaNecessaria = demanda;
-        return true;
-
     }
 
     public int getDemandaMateriaPrima() {
@@ -69,8 +48,7 @@ public class Produto {
         return status;
     }
 
-    public MateriaPrima getMateriaPrima() {
-        return materiaPrima;
+    public float getQualidade() {
+        return qualidade;
     }
-
 }
