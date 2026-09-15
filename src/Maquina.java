@@ -48,4 +48,8 @@ public abstract class Maquina {
     public boolean estaLigada() {
         return ligada;
     }
+
+    public float getProbabilidadeFalha() {
+        return probabilidadeFalha;
+    }
 }
