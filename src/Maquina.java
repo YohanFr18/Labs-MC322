@@ -1,13 +1,32 @@
-public class Maquina {
+import java.util.Random;
+
+public abstract class Maquina {
     private String nome;
     private boolean ligada;
     private int capacidadeMaxima;
+    private float probabilidadeFalha;
+    private double custoOperacao;
+    private Random randomNum;
 
-    public Maquina(String nome, int capacidadeMaxima) {
+    public Maquina(String nome, int capacidadeMaxima, float probabilidadeFalha, double custoOperacao) {
         this.nome = nome;
         ligada = false;
         this.capacidadeMaxima = capacidadeMaxima;
+        this.probabilidadeFalha = probabilidadeFalha;
+        this.custoOperacao = custoOperacao;
+        randomNum = new Random();
     }
+
+    protected boolean verificarFalha() {
+        if (randomNum.nextFloat() <= probabilidadeFalha) {
+            return true;
+        }
+        return false;
+    }
+
+    public abstract boolean processar(Produto produto);
+
+    public abstract String getTipo();
 
     public void ligar() {
         ligada = true;
@@ -17,35 +36,13 @@ public class Maquina {
         ligada = false;
     }
 
-    public boolean processar(MateriaPrima materiaPrima, Produto produto, int demanda) {
-        if (!ligada) {
-            return false;
-        }
-        if (materiaPrima == null || produto == null) {
-            return false;
-        }
-        if (demanda > capacidadeMaxima) {
-            return false;
-        }
-        // Valida o produto antes de consumir a matéria-prima, para não gastar
-        // estoque num produto que já foi processado/inspecionado
-        if (produto.getStatus() != StatusProduto.AGUARDANDO_PROCESSAMENTO) {
-            return false;
-        }
-        if (!materiaPrima.verificarDisponibilidade(demanda)) {
-            return false;
-        }
-
-        // Consome a matéria-prima do estoque e transforma o produto
-        if (!materiaPrima.consumir(demanda)) {
-            return false;
-        }
-        return produto.processar(materiaPrima);
-    }
-
     public String getNome() {
         return nome;
 
+    }
+
+    public double getCustoOperacao(){
+        return custoOperacao;
     }
 
     public boolean estaLigada() {
