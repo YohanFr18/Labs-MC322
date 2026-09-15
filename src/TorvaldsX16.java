@@ -1,6 +1,6 @@
-public class LovelaceX8 extends Produto {
-    public LovelaceX8() {
-        super("Lovelace-X8", 320, 0.7f);
+public class TorvaldsX16 extends Produto {
+    public TorvaldsX16() {
+        super("Torvalds-X16", 640, 0.9f);
     }
 
     @Override
@@ -15,12 +15,12 @@ public class LovelaceX8 extends Produto {
 
     @Override
     public int calcularTempoProducao() {
-        int tempoBase = 80;
+        int tempoBase = 160;
         return tempoBase + (getQuantidadeMateriaPrimaPorUnidade() / 10) + (int) (getQualidade() * 30);
     }
 
     @Override
     public String getTipo() {
-        return "Processador de Média Qualidade";
+        return "Processador de Alta Qualidade";
     }
 }
