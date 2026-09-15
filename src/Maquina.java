@@ -24,6 +24,13 @@ public abstract class Maquina {
         return false;
     }
 
+    protected boolean verificarFalha(float probabilidadeCustomizada) {
+        if (randomNum.nextFloat() <= probabilidadeCustomizada) {
+            return true;
+        }
+        return false;
+    }
+
     public abstract boolean processar(Produto produto);
 
     public abstract String getTipo();
@@ -41,7 +48,7 @@ public abstract class Maquina {
 
     }
 
-    public double getCustoOperacao(){
+    public double getCustoOperacao() {
         return custoOperacao;
     }
 
