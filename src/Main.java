@@ -17,6 +17,20 @@ public class Main {
 
     public static void main(String[] args) {
         System.out.println("""
+                
+                        ..+----------------+
+                        ./                /|
+                        +----------------+  |
+                        |  X       X     |   ----+
+                        |                 |     /|
+                        |  X       X       ----+ |
+                        |                      | +
+                        |  X       X       X   |/
+                        +----------------------+
+                
+                """);
+
+        System.out.println("""
                 ========================================
                 SMART FOUNDRY
                 Da areia ao algoritmo.
@@ -32,130 +46,91 @@ public class Main {
                 ========================================
                 """);
 
-        MateriaPrima wafer = new MateriaPrima("SIW-001", "Wafer de Silício", 5000, "mm2", 100);
-        Produto turing = new Produto("CPU-001", "Turing-X4", 120);
-        Produto lovelace = new Produto("CPU-002", "Lovelace-X8", 320);
-        Produto torvalds = new Produto("CPU-003", "Torvalds-X16", 640);
+        // Construtor atualizado da Tarefa 2: (id, nome, quantidade, unidade, custoPorUnidade, quantidadeMinima)
+        MateriaPrima wafer = new MateriaPrima("SIW-001", "Wafer de Silício", 5000, "mm2", 10, 100);
+        double budgetInicial = 5000.0;
 
-        Maquina maquina = new Maquina("WAFER X-PRESS 2000", 760);
-        Esteira esteira = new Esteira(700);
-        EstacaoInspecao estacaoInspecao = new EstacaoInspecao();
+        // Gerenciador de Produção central da Tarefa 2
+        GerenciadorProducao gerenciador = new GerenciadorProducao(wafer, budgetInicial);
+
+        // Registro das demandas dos processadores
+        gerenciador.registrarDemanda(new Demanda("Turing-X4", 0));
+        gerenciador.registrarDemanda(new Demanda("Lovelace-X8", 0));
+        gerenciador.registrarDemanda(new Demanda("Torvalds-X16", 0));
 
         Scanner sc = new Scanner(System.in);
 
         while (true) {
-            System.out.println(
-                    """
-                            ========================================
-                            MENU PRINCIPAL - SMART FOUNDRY
-                            ========================================
-                            1 - Iniciar produção
-                            2 - Consultar estoque
-                            3 - Adicionar matéria-prima ao estoque
-                            4 - Sair
-                            """);
+            System.out.println("""
+                    ========================================
+                    MENU PRINCIPAL - SMART FOUNDRY
+                    ========================================""");
+            gerenciador.exibirBudget();
+            System.out.println("""
+                    1 - Atualizar demandas
+                    2 - Fabricar produto
+                    3 - Consultar estoque e armazém
+                    4 - Comprar matéria-prima
+                    5 - Sair
+                    """);
 
             int opcao = lerInteiro(sc, "Escolha: ");
+
             if (opcao == 1) {
                 System.out.println("""
-                        1 - Turing-X4    (demanda: 120 mm²)
-                        2 - Lovelace-X8  (demanda: 320 mm²)
-                        3 - Torvalds-X16 (demanda: 640 mm²)
+                        1 - Turing-X4
+                        2 - Lovelace-X8
+                        3 - Torvalds-X16
                         """);
-
-                // Escolha do modelo a ser produzido
                 int escolha = lerInteiro(sc, "Selecione o modelo (1-3): ");
-                Produto produto;
-                if (escolha == 1) {
-                    produto = turing;
-                } else if (escolha == 2) {
-                    produto = lovelace;
-                } else if (escolha == 3) {
-                    produto = torvalds;
-                } else {
+                String modelo = switch (escolha) {
+                    case 1 -> "Turing-X4";
+                    case 2 -> "Lovelace-X8";
+                    case 3 -> "Torvalds-X16";
+                    default -> null;
+                };
+
+                if (modelo == null) {
                     System.out.println("Modelo inválido.");
                     continue;
                 }
 
-                // Recoloca o modelo na fila (o mesmo objeto é reutilizado a cada produção)
-                produto.reiniciarProducao();
-
-                int demanda = lerInteiro(sc, "Informe a demanda de wafer (mm2): ");
-                if (demanda <= 0) {
-                    System.out.println("[FAIL] A demanda deve ser um número positivo.");
-                    continue;
-                }
-                System.out.println("[OK] Verificando disponibilidade de Wafer de Silício...");
-                // Verificação de estoque da fábrica (insuficiente ou abaixo do limite)
-                if (!wafer.verificarDisponibilidade(demanda)) {
-                    System.out.println("[FAIL] Estoque insuficiente ou abaixo do mínimo de segurança.");
-                    continue;
-                }
-                System.out.println("[OK] Demanda de " + demanda + " mm² pode ser atendida (estoque atual: "
-                        + wafer.getQuantidade() + " mm²).");
-
-                // Registra no produto a demanda definida pelo usuário para esta produção
-                produto.definirDemandaMateriaPrima(demanda);
-
-                // Ligando a esteira, a máquina e ativando a estação de inspeção
-                esteira.ligar();
-                maquina.ligar();
-                estacaoInspecao.ativar();
-                System.out.println("[OK] Esteira ligada.");
-                System.out.println("[OK] " + maquina.getNome() + " ligada.");
-
-                // Etapa de transporte da matéria-prima, pela esteira, até a máquina
-                if (!esteira.adicionarItem(wafer, demanda)) {
-                    System.out.println("[FAIL] Esteira não aceitou a matéria-prima.");
-                    continue;
-                }
-                MateriaPrima mp = (MateriaPrima) esteira.removerItem();
-
-                System.out.println("[OK] " + wafer.getNome() + " colocado na esteira.");
-                System.out.println("[OK] Matéria-prima transportada até a máquina.");
-
-                // Etapa de processamento do produto
-                System.out.println("[OK] " + maquina.getNome() + " processando " + demanda + " mm² de silício...");
-                if (!maquina.processar(mp, produto, demanda)) {
-                    System.out.println("[FAIL] Falha no processamento.");
-                    continue;
-                }
-
-                System.out.println("[OK] Produto " + produto.getId() + " " + produto.getNome() + " criado.");
-
-                // Etapa de transporte do produto, pela esteira, até a estação de inspeção
-                System.out.println(
-                        "[OK] Produto " + produto.getId() + " " + produto.getNome()
-                                + " transportado para a inspeção final.");
-                System.out.println("[OK] Estação de inspeção ativada.");
-                if (!esteira.adicionarItem(produto, demanda)) {
-                    System.out.println("[FAIL] Esteira não aceitou o produto.");
-                    continue;
-                }
-                Produto p = (Produto) esteira.removerItem();
-
-                // Etapa de inspeção do produto
-                if (!estacaoInspecao.inspecionar(p)) {
-                    System.out.println("[FAIL] Falha na inspeção.");
-                    continue;
-                }
-
-                // Finalizado, produção concluída com sucesso
-                System.out.println("[OK] " + produto.getId() + " " + produto.getNome() + " aprovado na inspeção.");
-                System.out.println("""
-                        ========================================
-                        PRODUÇÃO CONCLUÍDA COM SUCESSO
-                        ========================================""");
-                System.out.println("Estoque restante de " + wafer.getNome() + ": "
-                        + wafer.getQuantidade() + " " + wafer.getUnidade());
+                int novaQtd = lerInteiro(sc, "Nova quantidade da demanda: ");
+                gerenciador.atualizarDemanda(modelo, novaQtd);
 
             } else if (opcao == 2) {
-                System.out.println(wafer.getNome() + ": " + wafer.getQuantidade() + " " + wafer.getUnidade());
+                System.out.println("""
+                        1 - Turing-X4
+                        2 - Lovelace-X8
+                        3 - Torvalds-X16
+                        """);
+                int escolha = lerInteiro(sc, "Selecione o modelo (1-3): ");
+                String modelo = switch (escolha) {
+                    case 1 -> "Turing-X4";
+                    case 2 -> "Lovelace-X8";
+                    case 3 -> "Torvalds-X16";
+                    default -> null;
+                };
+
+                if (modelo == null) {
+                    System.out.println("Modelo inválido.");
+                    continue;
+                }
+
+                gerenciador.fabricarDemanda(modelo);
+
             } else if (opcao == 3) {
-                int add_mp = lerInteiro(sc, "Quantidade a adicionar: ");
-                wafer.adicionarEstoque(add_mp);
+                System.out.println("--- ESTOQUE DE MATÉRIA-PRIMA ---");
+                System.out.println(wafer.getNome() + ": " + wafer.getQuantidade() + " " + wafer.getUnidade());
+                System.out.println("\n--- ARMAZÉM DE PRODUTOS ---");
+                gerenciador.exibirArmazem();
 
             } else if (opcao == 4) {
+                int qtd = lerInteiro(sc, "Quantidade de silício (mm2) a comprar: ");
+                gerenciador.comprarMateriaPrima(qtd);
+
+            } else if (opcao == 5) {
+                System.out.println("Fechando a fábrica.");
                 break;
             } else {
                 System.out.println("Opção inválida.");
