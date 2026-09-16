@@ -4,16 +4,16 @@ public class MateriaPrima {
     private int quantidade;
     private String unidade;
     private int quantidadeMinima;
-    private int CustoPorUnidade;
+    private int custoPorUnidade;
 
     public MateriaPrima(
-            String id, String nome, int quantidade, String unidade, int quantidadeMinima, int CustoPorUnidade) {
+            String id, String nome, int quantidade, String unidade, int quantidadeMinima, int custoPorUnidade) {
         this.id = id;
         this.nome = nome;
         this.quantidade = quantidade;
         this.unidade = unidade;
         this.quantidadeMinima = quantidadeMinima;
-        this.CustoPorUnidade = CustoPorUnidade;
+        this.custoPorUnidade = custoPorUnidade;
     }
 
     public boolean consumir(int demanda) {
@@ -57,8 +57,8 @@ public class MateriaPrima {
         return unidade;
     }
 
-    public int CustoPorUnidade() {
-        return CustoPorUnidade;
+    public int getCustoPorUnidade() {
+        return custoPorUnidade;
     }
 
     public int getQuantidadeMinima() {
