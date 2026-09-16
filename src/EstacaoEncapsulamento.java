@@ -9,7 +9,7 @@ public class EstacaoEncapsulamento extends Maquina {
             return false;
         }
 
-        if (!produto.processar()) {
+        if (produto.getStatus() != StatusProduto.PROCESSADO) {
             return false;
         }
 
