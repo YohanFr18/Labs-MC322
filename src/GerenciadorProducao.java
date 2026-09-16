@@ -53,6 +53,9 @@ public class GerenciadorProducao {
     }
 
     public void comprarMateriaPrima(int quantidade) {
+        if (quantidade <= 0) {
+            return;
+        }
         int custo = (quantidade * materiaPrima.getCustoPorUnidade());
         if (custo <= budget) {
             budget -= custo;
