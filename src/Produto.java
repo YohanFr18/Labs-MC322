@@ -53,4 +53,8 @@ public abstract class Produto {
     public void setStatus(StatusProduto status) {
         this.status = status;
     }
+
+    public float getProbabilidadeFalhaAcumulada() {
+        return probabilidadeFalhaAcumulada;
+    }
 }
