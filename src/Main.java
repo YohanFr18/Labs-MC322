@@ -46,8 +46,8 @@ public class Main {
                 ========================================
                 """);
 
-        // Construtor atualizado da Tarefa 2: (id, nome, quantidade, unidade, custoPorUnidade, quantidadeMinima)
-        MateriaPrima wafer = new MateriaPrima("SIW-001", "Wafer de Silício", 5000, "mm2", 10, 100);
+        // Construtor atualizado da Tarefa 2: (id, nome, quantidade, unidade, quantidadeMinima, custoPorUnidade)
+        MateriaPrima wafer = new MateriaPrima("SIW-001", "Wafer de Silício", 5000, "mm2", 100, 10);
         double budgetInicial = 5000.0;
 
         // Gerenciador de Produção central da Tarefa 2
