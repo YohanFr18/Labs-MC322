@@ -51,8 +51,9 @@ Utilizamos a classe `Random` para modular as falhas do processo:
 
 4. ARQUITETURA, COLEÇÕES E GESTÃO FINANCEIRA
 A classe `GerenciadorProducao` assumiu o papel de controlador central da planta:
-- Uso de Coleções (`ArrayList`): Gerencia dinamicamente as filas de `demandas`, 
-  o inventário de `maquinas` e o armazém de `produtosFabricados` aprovados.
+- Uso de Coleções (`ArrayList`): Gerencia dinamicamente as filas de `demandas`,
+  o inventário de `maquinas` e o armazém de `produtosFabricados`, registrando
+  tanto os processadores aprovados quanto os rejeitados na inspeção final.
 - Controle de Budget e Estoque: Toda fabricação calcula os custos operacionais das 
   máquinas e o consumo de silício. A compra de wafers (`comprarMateriaPrima`) 
   valida o saldo orçamentário (`budget`) antes de incrementar o estoque, 
