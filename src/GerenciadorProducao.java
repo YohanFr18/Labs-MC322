@@ -1,4 +1,7 @@
 import java.util.ArrayList;
+import java.util.LinkedHashMap;
+import java.util.List;
+import java.util.Map;
 
 public class GerenciadorProducao {
     private ArrayList<Demanda> demandas;
@@ -6,10 +9,12 @@ public class GerenciadorProducao {
     private ArrayList<Maquina> maquinas;
     private MateriaPrima materiaPrima;
     private double budget;
+    private Cenario cenarioAtivo;
 
-    public GerenciadorProducao(MateriaPrima materiaPrima, double budget) {
+    public GerenciadorProducao(MateriaPrima materiaPrima, Cenario cenario) {
         this.materiaPrima = materiaPrima;
-        this.budget = budget;
+        this.cenarioAtivo = cenario;
+        this.budget = cenario.getBudgetInicial();
         demandas = new ArrayList<>();
         produtosFabricados = new ArrayList<>();
         maquinas = new ArrayList<>();
@@ -22,6 +27,10 @@ public class GerenciadorProducao {
         maquinas.add(litografia);
         maquinas.add(encapsulamento);
         maquinas.add(metrologia);
+    }
+
+    public String getNomeCenarioAtivo() {
+        return cenarioAtivo.getDescricao();
     }
 
     public void registrarDemanda(Demanda d) {
@@ -45,10 +54,26 @@ public class GerenciadorProducao {
     public void exibirArmazem() {
         if (produtosFabricados.isEmpty()) {
             System.out.println("[FAIL] Lista Vazia.");
-        } else {
-            for (Produto d : produtosFabricados) {
-                System.out.println("- " + d.getId() + " " + d.getNome() + " (" + d.getTipo() + ") - " + d.getStatus());
+            return;
+        }
+
+        Map<String, List<Produto>> lotes = new LinkedHashMap<>();
+        for (Produto p : produtosFabricados) {
+            lotes.computeIfAbsent(p.getTipo(), k -> new ArrayList<>()).add(p);
+        }
+
+        for (Map.Entry<String, List<Produto>> lote : lotes.entrySet()) {
+            List<Produto> produtosDoLote = lote.getValue();
+            float qualidadeMedia = 0;
+            float riscoMedio = 0;
+            for (Produto p : produtosDoLote) {
+                qualidadeMedia += p.getQualidade();
+                riscoMedio += p.getProbabilidadeFalhaAcumulada();
             }
+            qualidadeMedia /= produtosDoLote.size();
+            riscoMedio /= produtosDoLote.size();
+            System.out.printf("- %s | Qtd: %d | Qualidade média: %.2f | Risco médio: %.2f%n",
+                    lote.getKey(), produtosDoLote.size(), qualidadeMedia, riscoMedio);
         }
     }
 
