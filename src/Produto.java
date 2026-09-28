@@ -1,4 +1,4 @@
-public abstract class Produto {
+public abstract class Produto implements Auditavel {
     private String id;
     private String nome;
     private StatusProduto status;
@@ -6,6 +6,17 @@ public abstract class Produto {
     private float qualidade;
     private float probabilidadeFalhaAcumulada;
     private static int totalProdutosFabricados;
+
+    @Override
+    public boolean precisaManutencao() {
+        return probabilidadeFalhaAcumulada > 0.5;
+    }
+
+    @Override
+    public String gerarRelatorioDiagnostico() {
+        String relatorio = id + " - Qualidade: " + qualidade + " -  Risco acumulado: " + probabilidadeFalhaAcumulada;
+        return relatorio;
+    }
 
     public Produto(
             String nome, int quantidadeMateriaPrimaPorUnidade, float qualidade) {
