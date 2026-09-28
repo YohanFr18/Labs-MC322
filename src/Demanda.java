@@ -30,6 +30,14 @@ public class Demanda {
         return this.quantidadeProdutos * quantidadePorUnidade;
     }
 
+    public boolean verificarViabilidadeFinanceira(double orcamentoDisponivel, int custoPorUnidadeMateriaPrima,
+            int quantidadeMateriaPrimaPorUnidade) {
+        int aux = calcularMateriaPrimaNecessaria(quantidadeMateriaPrimaPorUnidade);
+        int custoTotal = aux * custoPorUnidadeMateriaPrima;
+
+        return custoTotal <= orcamentoDisponivel;
+    }
+
     public void cancelar() {
         if (this.status != StatusDemanda.CONCLUIDA) {
             this.status = StatusDemanda.CANCELADA;
