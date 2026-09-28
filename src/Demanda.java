@@ -1,24 +1,25 @@
 public class Demanda {
     private String tipoProduto;
     private int quantidadeProdutos;
-    private boolean atendida;
+    private StatusDemanda status;
 
     public Demanda(String tipoProduto, int quantidadeProdutos) {
         this.tipoProduto = tipoProduto;
         this.quantidadeProdutos = Math.max(0, quantidadeProdutos);
-        this.atendida = false;
+        this.status = StatusDemanda.PENDENTE;
     }
 
     public boolean atualizarQuantidade(int novaQuantidade) {
         if (novaQuantidade < 0) {
             return false;
         }
-        
+
         this.quantidadeProdutos = novaQuantidade;
 
         if (novaQuantidade > 0) {
-            this.atendida = false;
+            this.status = StatusDemanda.PENDENTE;
         }
+
         return true;
     }
 
@@ -29,8 +30,16 @@ public class Demanda {
         return this.quantidadeProdutos * quantidadePorUnidade;
     }
 
+    public void cancelar() {
+        if (this.status != StatusDemanda.CONCLUIDA) {
+            this.status = StatusDemanda.CANCELADA;
+        }
+    }
+
     public void atender() {
-        this.atendida = true;
+        if (this.status != StatusDemanda.CANCELADA) {
+            this.status = StatusDemanda.CONCLUIDA;
+        }
     }
 
     public String getTipoProduto() {
@@ -41,7 +50,7 @@ public class Demanda {
         return quantidadeProdutos;
     }
 
-    public boolean isAtendida() {
-        return atendida;
+    public StatusDemanda getStatus() {
+        return status;
     }
 }
