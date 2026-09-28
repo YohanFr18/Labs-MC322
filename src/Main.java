@@ -15,6 +15,18 @@ public class Main {
         return sc.nextInt();
     }
 
+    static Cenario escolherCenario(Scanner sc) {
+        System.out.println("""
+                ========================================
+                SELEÇÃO DE CENÁRIO
+                ========================================
+                1 - Ideal (mercado estável, budget alto)
+                2 - Apocalíptico (crise de insumos, budget curto)
+                """);
+        int escolha = lerInteiro(sc, "Escolha o cenário (1-2): ");
+        return escolha == 2 ? Cenario.APOCALIPTICO : Cenario.IDEAL;
+    }
+
     public static void main(String[] args) {
         System.out.println("""
                 
@@ -46,25 +58,27 @@ public class Main {
                 ========================================
                 """);
 
+        Scanner sc = new Scanner(System.in);
+
+        Cenario cenario = escolherCenario(sc);
+
         // Construtor atualizado da Tarefa 2: (id, nome, quantidade, unidade, quantidadeMinima, custoPorUnidade)
         MateriaPrima wafer = new MateriaPrima("SIW-001", "Wafer de Silício", 5000, "mm2", 100, 10);
-        double budgetInicial = 5000.0;
 
-        // Gerenciador de Produção central da Tarefa 2
-        GerenciadorProducao gerenciador = new GerenciadorProducao(wafer, budgetInicial);
+        // Gerenciador de Produção central, agora recebendo o Cenario (item 16)
+        GerenciadorProducao gerenciador = new GerenciadorProducao(wafer, cenario);
 
         // Registro das demandas dos processadores
         gerenciador.registrarDemanda(new Demanda("Turing-X4", 0));
         gerenciador.registrarDemanda(new Demanda("Lovelace-X8", 0));
         gerenciador.registrarDemanda(new Demanda("Torvalds-X16", 0));
 
-        Scanner sc = new Scanner(System.in);
-
         while (true) {
             System.out.println("""
                     ========================================
                     MENU PRINCIPAL - SMART FOUNDRY
                     ========================================""");
+            System.out.println("Cenário: " + gerenciador.getNomeCenarioAtivo());
             gerenciador.exibirBudget();
             System.out.println("""
                     1 - Atualizar demandas
