@@ -1,6 +1,8 @@
+// Cada cenário define o budget inicial e os multiplicadores de falha e desgaste das máquinas
+// valores abaixo de 1 aliviam a operação e valores acima de 1 a tornam mais agressiva
 public enum Cenario {
-    IDEAL("Ideal", 8000.0, 0.6f, 3f),
-    APOCALIPTICO("Apocalíptico", 3000.0, 1.6f, 9f);
+    IDEAL("Ideal", 8000.0, 0.6f, 0.5f),
+    APOCALIPTICO("Apocalíptico", 3000.0, 1.6f, 2.0f);
 
     private final String descricao;
     private final double budgetInicial;

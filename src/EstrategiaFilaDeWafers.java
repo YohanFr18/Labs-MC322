@@ -1,6 +1,6 @@
 import java.util.List;
 
-public class EstrategiaOrdemChegada implements EstrategiaProducao {
+public class EstrategiaFilaDeWafers implements EstrategiaProducao {
 
     @Override
     public Demanda selecionarDemanda(List<Demanda> demandas, double orcamentoDisponivel) {
@@ -20,6 +20,6 @@ public class EstrategiaOrdemChegada implements EstrategiaProducao {
 
     @Override
     public String getNomeEstrategia() {
-        return "Ordem de Chegada (FIFO)";
+        return "Fila de Wafers (ordem de chegada)";
     }
 }

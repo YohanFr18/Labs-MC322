@@ -1,6 +1,6 @@
 import java.util.List;
 
-public class EstrategiaMaximoProdutos implements EstrategiaProducao {
+public class EstrategiaRendimentoMaximo implements EstrategiaProducao {
 
     // Valores padrão de referência para insumo/custo unitário caso não venham do produto/estoque
     private static final int CUSTO_INSUMO_PADRAO = 10;
@@ -36,6 +36,6 @@ public class EstrategiaMaximoProdutos implements EstrategiaProducao {
 
     @Override
     public String getNomeEstrategia() {
-        return "Maximizar Produtos Produzidos (Respeitando Budget)";
+        return "Rendimento Máximo (dentro do budget)";
     }
 }

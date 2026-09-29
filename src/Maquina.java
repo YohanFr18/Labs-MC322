@@ -12,6 +12,9 @@ public abstract class Maquina implements Auditavel {
     private double saude;
     private static final double LIMIAR_CRITICO = 30.0;
 
+    // Multiplicador definido pelo cenário ativo, aplicado sobre a probabilidade de falha
+    private float multiplicadorFalhaCenario;
+
     public Maquina(String nome, int capacidadeMaxima, float probabilidadeFalha, double custoOperacao) {
         this.nome = nome;
         this.ligada = false;
@@ -20,6 +23,15 @@ public abstract class Maquina implements Auditavel {
         this.custoOperacao = custoOperacao;
         this.randomNum = new Random();
         this.saude = 100.0; // Inicia a 100%
+        this.multiplicadorFalhaCenario = 1.0f;
+    }
+
+    public void setMultiplicadorFalhaCenario(float multiplicadorFalhaCenario) {
+        this.multiplicadorFalhaCenario = multiplicadorFalhaCenario;
+    }
+
+    public boolean estaQuebrada() {
+        return this.saude <= 0.0;
     }
 
     // Reduz a saude aleatoriamente entre 0 e 3 pontos a cada uso.
@@ -42,7 +54,7 @@ public abstract class Maquina implements Auditavel {
 
         // Incremento proporcional a saude perdida
         float acrescimoDesgaste = (float) ((100.0 - this.saude) / 100.0) * 0.4f;
-        float probabilidadeReal = Math.min(1.0f, this.probabilidadeFalha + acrescimoDesgaste);
+        float probabilidadeReal = Math.min(1.0f, (this.probabilidadeFalha + acrescimoDesgaste) * multiplicadorFalhaCenario);
 
         return randomNum.nextFloat() <= probabilidadeReal;
     }
@@ -53,7 +65,7 @@ public abstract class Maquina implements Auditavel {
         }
 
         float acrescimoDesgaste = (float) ((100.0 - this.saude) / 100.0) * 0.4f;
-        float probabilidadeReal = Math.min(1.0f, probabilidadeCustomizada + acrescimoDesgaste);
+        float probabilidadeReal = Math.min(1.0f, (probabilidadeCustomizada + acrescimoDesgaste) * multiplicadorFalhaCenario);
 
         return randomNum.nextFloat() <= probabilidadeReal;
     }

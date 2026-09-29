@@ -1,64 +1,87 @@
 ================================================================================
-JUSTIFICATIVA DO PROJETO - TAREFA 2: EXPANSÃO E COMPLEXIDADE
+JUSTIFICATIVA DO PROJETO - TAREFA 3: PADRÕES DE PROJETO, INTERFACES E ENUMERAÇÕES
 SMART FOUNDRY - FABRICAÇÃO DE SEMICONDUTORES
 Disciplina: MC322 - Programação Orientada a Objetos
-Integrantes: Victor Rimes & Yohan Rocha
+Integrantes: Victor Rimes (RA 301314) & Yohan Rocha (RA 238967)
 ================================================================================
 
-1. EVOLUÇÃO TEMÁTICA DA LINHA DE PRODUÇÃO
-Na Tarefa 2, expandimos a temática da "Smart Foundry - Da areia ao algoritmo" para 
-modelar com maior fidelidade a complexidade de uma fundição de microprocessadores. 
-A partir do insumo básico de Wafer de Silício (SIW-001 medido em mm²), a fábrica 
-passou a gerenciar a manufatura de três famílias de circuitos integrados com 
-diferentes perfis de custo e qualidade:
-- Torvalds-X16 (Alta Qualidade - 0.9): Processador de altíssimo desempenho para 
-  servidores, com maior consumo de matéria-prima e critérios de inspeção rigorosos.
-- Lovelace-X8 (Média Qualidade - 0.7): Chip de segmento intermediário com balanço 
-  equilibrado entre área de silício e tolerância de litografia.
-- Turing-X4 (Baixa Qualidade - 0.5): Microcontrolador de baixo custo, com menor 
-  consumo de wafer e parâmetros de aceitação mais flexíveis.
+1. PADRÃO STRATEGY: SELEÇÃO DE ENCOMENDAS
+Até a Tarefa 2, só era possível fabricar escolhendo o modelo manualmente no menu.
+Agora a escolha de qual encomenda produzir a seguir é feita por uma estratégia
+trocável em tempo de execução.
+- Contexto: `GerenciadorProducao` guarda uma referência `estrategiaAtual` do tipo
+  `EstrategiaProducao` e a troca via `setEstrategia(...)`. Ele depende apenas da
+  interface; só a `Main` instancia as classes concretas, no submenu
+  "Gerenciar estratégia".
+- Interface: `EstrategiaProducao` define `selecionarDemanda(List<Demanda>, double)`
+  e `getNomeEstrategia()`.
+- Estratégias, com nomes do tema da fundição:
+  1. `EstrategiaFilaDeWafers`: atende as encomendas pendentes por ordem de
+     chegada, como uma fila de wafers entrando na linha.
+  2. `EstrategiaLoteMaximo`: prioriza a encomenda pendente com mais unidades,
+     rodando primeiro o maior lote.
+  3. `EstrategiaRendimentoMaximo`: considera só as encomendas financeiramente
+     viáveis (`Demanda.verificarViabilidadeFinanceira`) e escolhe a que rende mais
+     processadores sem estourar o budget.
+- `executarProximaProducao()` pede a encomenda à estratégia ativa e então fabrica
+  uma unidade. As estratégias apenas escolhem: não mexem no budget nem no estoque.
 
-2. HERANÇA E POLIMORFISMO
-Para eliminar duplicação de código e estruturar o domínio de forma extensível, 
-adotamos hierarquias de classes abstratas:
+2. ENUMERAÇÃO StatusDemanda
+O antigo booleano `atendida` virou o enum `StatusDemanda`, sempre comparado com
+`==`. As transições ficam dentro de `Demanda`:
+- PENDENTE -> EM_PRODUCAO: `iniciarProducao()`, quando a encomenda entra na linha
+  (escolhida pela estratégia ou manualmente);
+- EM_PRODUCAO -> PENDENTE: `registrarUnidadeProduzida()` ao terminar uma unidade,
+  se ainda restarem unidades, para que a estratégia possa escolhê-la de novo no
+  próximo ciclo. `interromperProducao()` faz o mesmo se a linha parar;
+- EM_PRODUCAO -> CONCLUIDA: `registrarUnidadeProduzida()` na última unidade;
+- CANCELADA: `cancelar()`, quando falta wafer ou budget para fabricar.
+Uma encomenda CONCLUIDA não pode ser cancelada e uma CANCELADA não pode ser
+concluída. Para reativar uma encomenda cancelada, o usuário atualiza a quantidade
+dela, e ela volta a PENDENTE. Em "Demandas > Listar demandas" aparece o status de
+cada encomenda, via `getDescricao()`.
 
-- Hierarquia de Produtos:
-  A classe abstrata `Produto` centralizou atributos comuns (id, nome, status, 
-  quantidadeMateriaPrimaPorUnidade, qualidade, probabilidadeFalhaAcumulada e o 
-  contador estático de produtos fabricados). Métodos abstratos como `processar()`, 
-  `calcularTempoProducao()` e `getTipo()` permitem que cada categoria de processador 
-  especifique seu comportamento dinamicamente em tempo de execução via polimorfismo.
+3. INTERFACE Auditavel
+`Auditavel` (`gerarRelatorioDiagnostico()` e `precisaManutencao()`) é
+implementada por duas hierarquias sem relação de herança:
+- `Maquina`: precisa de manutenção quando a saúde fica abaixo de 30;
+- `Produto`: fica em risco quando a probabilidade de falha acumulada passa de 0.5.
+O relatório geral de auditoria junta máquinas e produtos numa única
+`ArrayList<Auditavel>` e percorre a lista sem saber o tipo concreto de cada item.
+"Detalhar máquinas" e "Detalhar produtos" usam o mesmo método
+(`exibirRelatorioAuditoria`), marcando os itens críticos com [ALERTA].
 
-- Hierarquia de Máquinas e Estágios Industriais:
-  A classe abstrata `Maquina` padronizou o controle de ligada/desligada, capacidade 
-  máxima e custo de operação. As máquinas da linha foram especializadas em três 
-  estágios sequenciais da fundição:
-  a) MaquinaProcessamento (Litografia/Dopagem): Executa a gravação do silício e 
-     possui probabilidade de introduzir defeitos latentes na pastilha.
-  b) MaquinaEmbalagem (Wire Bonding/Encapsulamento): Encapsula o die de silício, 
-     com chance cumulativa de afetar a integridade física do chip.
-  c) MaquinaInspecao (Varredura e Teste Funcional): Avalia a qualidade final e 
-     pode falhar diretamente em sua medição estatística.
+4. DESGASTE PROGRESSIVO DAS MÁQUINAS
+A cada uso, `Maquina.aplicarDesgaste(multiplicador)` tira da saúde (0 a 100) um
+valor aleatório entre 0 e 3 pontos, multiplicado pelo fator de desgaste do
+cenário. A chance de falha aumenta conforme a saúde cai:
+falhaReal = (falhaBase + ((100 - saude) / 100) * 0.4) * multiplicadorFalhaCenario,
+limitada a 100%. Com saúde 0 a máquina está quebrada (`estaQuebrada()`). Antes de
+cada fabricação o `GerenciadorProducao` confere todas as máquinas; se alguma
+estiver quebrada, a linha para antes de gastar wafer e a encomenda volta a
+PENDENTE. No submenu "Auditoria e manutenção" é possível recalibrar as máquinas
+com saúde abaixo de 30, por R$ 300 cada, voltando-as a 100%.
 
-3. PROBABILIDADE, ALEATORIEDADE E RIGOR DE INSPEÇÃO
-Utilizamos a classe `Random` para modular as falhas do processo:
-- O acúmulo de falha é cumulativo: à medida que o wafer avança pela máquina de 
-  processamento e pela embaladora, a sua `probabilidadeFalhaAcumulada` pode subir.
-- A decisão final na inspeção correlaciona diretamente a qualidade nominal do 
-  produto com o rigor de rejeição: processadores topo de linha (Torvalds-X16, q=0.9) 
-  possuem padrões de tolerância estritos, sendo mais suscetíveis a descarte caso 
-  tenham acumulado qualquer taxa de defeito durante as etapas anteriores.
+5. CENÁRIOS DE OPERAÇÃO
+O enum `Cenario` é escolhido logo no início, e o `GerenciadorProducao` é criado
+com os parâmetros dele:
+- IDEAL: budget de R$ 8000, falha x0.6, desgaste x0.5;
+- APOCALIPTICO (crise do silício): budget de R$ 3000, falha x1.6, desgaste x2.0.
+O multiplicador de falha é repassado para cada máquina, então afeta tanto os
+defeitos introduzidos na litografia e no encapsulamento quanto a rejeição na
+metrologia. Nos nossos testes, a mesma encomenda de Torvalds-X16 saiu quase toda
+aprovada no cenário Ideal e quase toda reprovada no Apocalíptico.
 
-4. ARQUITETURA, COLEÇÕES E GESTÃO FINANCEIRA
-A classe `GerenciadorProducao` assumiu o papel de controlador central da planta:
-- Uso de Coleções (`ArrayList`): Gerencia dinamicamente as filas de `demandas`,
-  o inventário de `maquinas` e o armazém de `produtosFabricados`, registrando
-  tanto os processadores aprovados quanto os rejeitados na inspeção final.
-- Controle de Budget e Estoque: Toda fabricação calcula os custos operacionais das 
-  máquinas e o consumo de silício. A compra de wafers (`comprarMateriaPrima`) 
-  valida o saldo orçamentário (`budget`) antes de incrementar o estoque, 
-  respeitando a margem de segurança de matéria-prima.
-- Desacoplamento da `Main`: A interface de usuário via console foca estritamente 
-  no fluxo de entrada/saída e menus numéricos seguros, delegando as validações de 
-  negócio e ciclos fabris para as classes de domínio correspondentes.
+6. ARMAZÉM DE PRODUTOS ACABADOS
+"Consultar > Ver armazém" é separado de "Ver estoque de matéria-prima", que mostra
+o wafer bruto. O armazém agrupa os processadores por lote (modelo) e mostra, para
+cada lote: tipo, quantidade, aprovados e rejeitados na metrologia, qualidade,
+risco médio e quantos estão em risco segundo `precisaManutencao()`.
+
+7. MENU
+O cabeçalho mostra a estratégia atual, o cenário ativo e o budget. As funções
+estão divididas em submenus: Demandas, Fabricação, Consultar, Comprar
+matéria-prima, Gerenciar estratégia e Auditoria e manutenção. Os eventos da linha
+aparecem com mensagens do tema, como "[METROLOGIA] ... defeito detectado no die",
+"[CANCELADA] Wafer insuficiente..." e "[PARADA] ... está quebrada".
 ================================================================================

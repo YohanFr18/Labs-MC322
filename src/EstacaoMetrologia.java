@@ -13,6 +13,9 @@ public class EstacaoMetrologia extends Maquina {
             return false;
         }
 
+        // A chance de rejeição é a média entre a falha da máquina, a qualidade do chip e o risco
+        // acumulado nas etapas anteriores: quanto maior a qualidade, mais rígida é a tolerância
+        // da inspeção, então chips de alta qualidade são reprovados com mais facilidade
         float probabilidadeRejeicao = (getProbabilidadeFalha() + produto.getQualidade()
                 + produto.getProbabilidadeFalhaAcumulada()) / 3;
         if (verificarFalha(probabilidadeRejeicao)) {
