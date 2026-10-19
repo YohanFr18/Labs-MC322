@@ -1,26 +1,53 @@
 import java.util.Scanner;
 
+/**
+ * Classe principal que gere o ponto de entrada da aplicação e o loop de menus interativos da Smart Foundry.
+ * É responsável por interagir com o utilizador, validar a entrada de dados (evitando falhas por tipos incorretos) 
+ * e tratar adequadamente as exceções de domínio geradas pelo sistema.
+ *
+ * @author Victor Rimes e Yohan Rocha
+ */
 public class Main {
+    
+    /**
+     * Lê a entrada do utilizador garantindo que apenas números inteiros são aceites,
+     * impedindo erros de InputMismatchException. Também previne falhas abruptas por fim de ficheiro (EOF / Ctrl+D).
+     *
+     * @param sc Scanner utilizado para ler os dados da consola.
+     * @param msg Mensagem apresentada ao utilizador antes de aguardar a entrada.
+     * @return O número inteiro introduzido e validado.
+     */
     static int lerInteiro(Scanner sc, String msg) {
         System.out.print(msg);
         while (!sc.hasNextInt()) {
-            if (!sc.hasNext()) { // entrada encerrada (EOF / Ctrl+D)
-                System.out.println("\nEntrada encerrada. Fechando a fábrica.");
+            if (!sc.hasNext()) { 
+                System.out.println("\nEntrada encerrada. A fechar a fábrica.");
                 System.exit(0);
             }
-            System.out.println("Digite apenas números.");
+            System.out.println("Entrada inválida. Digite apenas números inteiros.");
             sc.next();
             System.out.print(msg);
         }
         return sc.nextInt();
     }
 
+    /**
+     * Imprime o cabeçalho formatado de uma secção específica do menu.
+     *
+     * @param titulo Título da secção a ser impresso no ecrã.
+     */
     static void imprimirSecao(String titulo) {
         System.out.println("--------------------------------------------------------------");
         System.out.println(" [" + titulo + "]");
         System.out.println("--------------------------------------------------------------");
     }
 
+    /**
+     * Exibe o cabeçalho principal da aplicação, mostrando o estado atual da fábrica,
+     * incluindo a estratégia ativa, o cenário e o orçamento (budget) disponível.
+     *
+     * @param gerenciador Instância do gerenciador de produção que contém os dados atuais.
+     */
     static void exibirCabecalho(GerenciadorProducao gerenciador) {
         System.out.println("==============================================================");
         System.out.println("  SMART FOUNDRY - Da areia ao algoritmo");
@@ -31,11 +58,18 @@ public class Main {
         System.out.println("==============================================================");
     }
 
+    /**
+     * Apresenta o menu inicial para o utilizador escolher o cenário de dificuldade da fábrica.
+     * Garante que o utilizador escolhe uma opção válida antes de prosseguir.
+     *
+     * @param sc Scanner para ler a opção do utilizador.
+     * @return O {@link Cenario} selecionado (IDEAL ou APOCALIPTICO).
+     */
     static Cenario escolherCenario(Scanner sc) {
         imprimirSecao("SELEÇÃO DE CENÁRIO");
         System.out.println("""
-                 1 - Ideal: mercado estável, budget farto, máquinas confiáveis e desgaste leve
-                 2 - Apocalíptico: crise do silício, budget mínimo, falhas frequentes e desgaste acelerado
+                1 - Ideal: mercado estável, budget farto, máquinas confiáveis e desgaste leve
+                2 - Apocalíptico: crise do silício, budget mínimo, falhas frequentes e desgaste acelerado
                 """);
         while (true) {
             int escolha = lerInteiro(sc, "Escolha o cenário (1-2): ");
@@ -45,15 +79,22 @@ public class Main {
             if (escolha == 2) {
                 return Cenario.APOCALIPTICO;
             }
-            System.out.println("Cenário inválido.");
+
+            System.out.println("Cenário inválido. Por favor, escolha 1 ou 2.");
         }
     }
 
+    /**
+     * Apresenta o menu para seleção de um modelo específico de processador.
+     *
+     * @param sc Scanner para ler a opção do utilizador.
+     * @return A string correspondente ao nome do modelo selecionado, ou {@code null} se a opção for inválida.
+     */
     static String escolherModelo(Scanner sc) {
         System.out.println("""
-                 1 - Turing-X4     (baixa qualidade)
-                 2 - Lovelace-X8   (média qualidade)
-                 3 - Torvalds-X16  (alta qualidade)
+                1 - Turing-X4     (baixa qualidade)
+                2 - Lovelace-X8   (média qualidade)
+                3 - Torvalds-X16  (alta qualidade)
                 """);
         int escolha = lerInteiro(sc, "Selecione o modelo (1-3): ");
         return switch (escolha) {
@@ -64,13 +105,20 @@ public class Main {
         };
     }
 
+    /**
+     * Gere o submenu responsável por criar, atualizar e listar as demandas da fábrica.
+     * Trata eventuais exceções decorrentes da introdução de quantidades inválidas.
+     *
+     * @param sc Scanner para ler as interações do utilizador.
+     * @param gerenciador Instância ativa do gerenciador de produção.
+     */
     static void menuDemandas(Scanner sc, GerenciadorProducao gerenciador) {
         while (true) {
             imprimirSecao("DEMANDAS");
             System.out.println("""
-                     1 - Atualizar demanda
-                     2 - Listar demandas
-                     0 - Voltar
+                    1 - Atualizar demanda
+                    2 - Listar demandas
+                    0 - Voltar
                     """);
             int opcao = lerInteiro(sc, "Escolha: ");
             if (opcao == 0) {
@@ -78,52 +126,97 @@ public class Main {
             } else if (opcao == 1) {
                 String modelo = escolherModelo(sc);
                 if (modelo == null) {
-                    System.out.println("Modelo inválido.");
+                    System.out.println("Operação cancelada: O modelo selecionado não existe.");
                     continue;
                 }
+                
                 int novaQtd = lerInteiro(sc, "Nova quantidade da demanda: ");
-                gerenciador.atualizarDemanda(modelo, novaQtd);
+                if (novaQtd <= 0) {
+                    System.out.println("Operação inválida: A quantidade deve ser maior que zero.");
+                    continue;
+                }
+                
+                try {
+                    gerenciador.atualizarDemanda(modelo, novaQtd);
+                } catch (DemandaInvalidaException e) {
+                    System.out.println("ERRO ===\nNão foi possível atualizar a demanda: " + e.getMessage());
+                }
+                
             } else if (opcao == 2) {
                 gerenciador.listarDemandas();
             } else {
-                System.out.println("Opção inválida.");
+                System.out.println("Opção inválida. Escolha uma opção do menu.");
             }
         }
     }
 
+    /**
+     * Gere o submenu de fabrico de processadores.
+     * Captura as exceções de domínio da aplicação, permitindo a recuperação de erros como falta de recursos 
+     * ou avaria de máquinas sem encerrar o programa abruptamente.
+     *
+     * @param sc Scanner para ler as interações do utilizador.
+     * @param gerenciador Instância ativa do gerenciador de produção.
+     */
     static void menuFabricacao(Scanner sc, GerenciadorProducao gerenciador) {
         while (true) {
             imprimirSecao("FABRICAÇÃO");
             System.out.println("""
-                     1 - Processar próxima demanda (usa a estratégia ativa)
-                     2 - Fabricar modelo específico
-                     0 - Voltar
+                    1 - Processar próxima demanda (usa a estratégia ativa)
+                    2 - Fabricar modelo específico
+                    0 - Voltar
                     """);
             int opcao = lerInteiro(sc, "Escolha: ");
             if (opcao == 0) {
                 return;
-            } else if (opcao == 1) {
-                gerenciador.executarProximaProducao();
-            } else if (opcao == 2) {
-                String modelo = escolherModelo(sc);
-                if (modelo == null) {
-                    System.out.println("Modelo inválido.");
-                    continue;
+            } else if (opcao == 1 || opcao == 2) {
+                String modelo = null;
+                if (opcao == 2) {
+                    modelo = escolherModelo(sc);
+                    if (modelo == null) {
+                        System.out.println("Operação cancelada: O modelo selecionado não existe.");
+                        continue;
+                    }
                 }
-                gerenciador.fabricarDemanda(modelo);
+
+                try {
+                    if (opcao == 1) {
+                        gerenciador.executarProximaProducao();
+                    } else {
+                        gerenciador.fabricarDemanda(modelo);
+                    }
+                
+                } catch (RecursoInsuficienteException e) {
+                    System.out.println("ERRO ===\nProdução abortada por falta de recursos: " + e.getMessage());
+                    System.out.println("Nenhuma alteração foi realizada no estoque ou orçamento.");
+                } catch (MaquinaIndisponivelException e) {
+                    System.out.println("ERRO ===\nProdução interrompida: " + e.getMessage());
+                    System.out.println("Realize a manutenção da máquina na secção de Auditoria.");
+                } catch (DemandaInvalidaException e) {
+                    System.out.println("ERRO ===\n" + e.getMessage());
+                } catch (PlantaException e) {
+                    System.out.println("ERRO INESPERADO ===\n" + e.getMessage());
+                }
             } else {
-                System.out.println("Opção inválida.");
+                System.out.println("Opção inexistente. Tente novamente.");
             }
         }
     }
 
+    /**
+     * Gere o submenu responsável por consultar o armazém de produtos finalizados e o estado do inventário de matérias-primas.
+     *
+     * @param sc Scanner para ler as interações do utilizador.
+     * @param gerenciador Instância ativa do gerenciador de produção.
+     * @param wafer Instância da matéria-prima utilizada na fábrica.
+     */
     static void menuConsultar(Scanner sc, GerenciadorProducao gerenciador, MateriaPrima wafer) {
         while (true) {
             imprimirSecao("CONSULTAR");
             System.out.println("""
-                     1 - Ver armazém (produtos acabados)
-                     2 - Ver estoque de matéria-prima
-                     0 - Voltar
+                    1 - Ver armazém (produtos acabados)
+                    2 - Ver estoque de matéria-prima
+                    0 - Voltar
                     """);
             int opcao = lerInteiro(sc, "Escolha: ");
             if (opcao == 0) {
@@ -139,13 +232,19 @@ public class Main {
         }
     }
 
+    /**
+     * Gere o submenu que permite alterar a estratégia de produção utilizada pela fábrica.
+     *
+     * @param sc Scanner para ler a opção selecionada.
+     * @param gerenciador Instância ativa do gerenciador de produção a ser atualizada.
+     */
     static void menuEstrategia(Scanner sc, GerenciadorProducao gerenciador) {
         imprimirSecao("GERENCIAR ESTRATÉGIA");
         System.out.println("""
-                 1 - Fila de Wafers    : atende as encomendas por ordem de chegada
-                 2 - Lote Máximo       : prioriza a maior encomenda pendente
-                 3 - Rendimento Máximo : maximiza a produção sem estourar o budget
-                 0 - Voltar
+                1 - Fila de Wafers    : atende as encomendas por ordem de chegada
+                2 - Lote Máximo       : prioriza a maior encomenda pendente
+                3 - Rendimento Máximo : maximiza a produção sem estourar o budget
+                0 - Voltar
                 """);
         int opcao = lerInteiro(sc, "Escolha: ");
         EstrategiaProducao novaEstrategia = switch (opcao) {
@@ -154,9 +253,10 @@ public class Main {
             case 3 -> new EstrategiaRendimentoMaximo();
             default -> null;
         };
+        
         if (novaEstrategia == null) {
             if (opcao != 0) {
-                System.out.println("Opção inválida.");
+                System.out.println("Estratégia inválida. Selecione uma opção existente.");
             }
             return;
         }
@@ -164,6 +264,13 @@ public class Main {
         System.out.println("Estratégia alterada para: " + novaEstrategia.getNomeEstrategia());
     }
 
+    /**
+     * Gere o submenu focado na auditoria da fábrica, permitindo inspecionar máquinas, produtos
+     * e executar a manutenção preventiva do equipamento.
+     *
+     * @param sc Scanner para ler as interações do utilizador.
+     * @param gerenciador Instância ativa do gerenciador de produção.
+     */
     static void menuAuditoria(Scanner sc, GerenciadorProducao gerenciador) {
         while (true) {
             imprimirSecao("AUDITORIA E MANUTENÇÃO");
@@ -174,6 +281,7 @@ public class Main {
             System.out.println(" 0 - Voltar");
             System.out.println();
             int opcao = lerInteiro(sc, "Escolha: ");
+            
             if (opcao == 0) {
                 return;
             } else if (opcao == 1) {
@@ -183,13 +291,23 @@ public class Main {
             } else if (opcao == 3) {
                 gerenciador.detalharProdutos();
             } else if (opcao == 4) {
-                gerenciador.realizarManutencao();
+                try {
+                    gerenciador.realizarManutencao();
+                } catch (RecursoInsuficienteException e) {
+                    System.out.println("ERRO ===\n" + e.getMessage());
+                }
             } else {
                 System.out.println("Opção inválida.");
             }
         }
     }
 
+    /**
+     * Método principal responsável por iniciar a aplicação, configurar os componentes da fábrica
+     * e executar o loop do menu central.
+     *
+     * @param args Argumentos da linha de comandos (não utilizados nesta aplicação).
+     */
     public static void main(String[] args) {
         System.out.println("""
 
@@ -222,17 +340,11 @@ public class Main {
                 """);
 
         Scanner sc = new Scanner(System.in);
-
         Cenario cenario = escolherCenario(sc);
-
-        // (id, nome, quantidade, unidade, quantidadeMinima, custoPorUnidade)
         MateriaPrima wafer = new MateriaPrima("SIW-001", "Wafer de Silício", 5000, "mm2", 100, 10);
-
         GerenciadorProducao gerenciador = new GerenciadorProducao(wafer, cenario);
-        // A fábrica começa na Fila de Wafers, e a estratégia pode ser trocada pelo menu
+        
         gerenciador.setEstrategia(new EstrategiaFilaDeWafers());
-
-        // As demandas começam zeradas, o usuário define as quantidades no menu Demandas
         gerenciador.registrarDemanda(new Demanda("Turing-X4", 0));
         gerenciador.registrarDemanda(new Demanda("Lovelace-X8", 0));
         gerenciador.registrarDemanda(new Demanda("Torvalds-X16", 0));
@@ -240,13 +352,13 @@ public class Main {
         while (true) {
             exibirCabecalho(gerenciador);
             System.out.println("""
-                     1 - Demandas
-                     2 - Fabricação
-                     3 - Consultar
-                     4 - Comprar matéria-prima
-                     5 - Gerenciar estratégia
-                     6 - Auditoria e manutenção
-                     0 - Sair
+                    1 - Demandas
+                    2 - Fabricação
+                    3 - Consultar
+                    4 - Comprar matéria-prima
+                    5 - Gerenciar estratégia
+                    6 - Auditoria e manutenção
+                    0 - Sair
                     """);
 
             int opcao = lerInteiro(sc, "Escolha: ");
@@ -257,16 +369,25 @@ public class Main {
                 case 3 -> menuConsultar(sc, gerenciador, wafer);
                 case 4 -> {
                     int qtd = lerInteiro(sc, "Quantidade de silício (mm2) a comprar: ");
-                    gerenciador.comprarMateriaPrima(qtd);
+                    
+                    if (qtd <= 0) {
+                        System.out.println("Operação inválida: A quantidade de compra deve ser superior a zero.");
+                        break;
+                    }
+                    try {
+                        gerenciador.comprarMateriaPrima(qtd);
+                    } catch (RecursoInsuficienteException e) {
+                        System.out.println("ERRO ===\nNão foi possível concluir a compra: " + e.getMessage());
+                    }
                 }
                 case 5 -> menuEstrategia(sc, gerenciador);
                 case 6 -> menuAuditoria(sc, gerenciador);
                 case 0 -> {
-                    System.out.println("Desligando a linha de litografia. Até a próxima, SMART FOUNDRY!");
+                    System.out.println("A desligar a linha de litografia. Até à próxima, SMART FOUNDRY!");
                     sc.close();
                     return;
                 }
-                default -> System.out.println("Opção inválida.");
+                default -> System.out.println("Opção inválida. Selecione uma ação de 0 a 6.");
             }
         }
     }

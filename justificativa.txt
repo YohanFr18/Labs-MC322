@@ -1,87 +1,45 @@
 ================================================================================
-JUSTIFICATIVA DO PROJETO - TAREFA 3: PADRÕES DE PROJETO, INTERFACES E ENUMERAÇÕES
+JUSTIFICATIVA DO PROJETO - TAREFA 4: GRADLE, JAVADOC E TRATAMENTO DE ERROS
 SMART FOUNDRY - FABRICAÇÃO DE SEMICONDUTORES
 Disciplina: MC322 - Programação Orientada a Objetos
 Integrantes: Victor Rimes (RA 301314) & Yohan Rocha (RA 238967)
 ================================================================================
 
-1. PADRÃO STRATEGY: SELEÇÃO DE ENCOMENDAS
-Até a Tarefa 2, só era possível fabricar escolhendo o modelo manualmente no menu.
-Agora a escolha de qual encomenda produzir a seguir é feita por uma estratégia
-trocável em tempo de execução.
-- Contexto: `GerenciadorProducao` guarda uma referência `estrategiaAtual` do tipo
-  `EstrategiaProducao` e a troca via `setEstrategia(...)`. Ele depende apenas da
-  interface; só a `Main` instancia as classes concretas, no submenu
-  "Gerenciar estratégia".
-- Interface: `EstrategiaProducao` define `selecionarDemanda(List<Demanda>, double)`
-  e `getNomeEstrategia()`.
-- Estratégias, com nomes do tema da fundição:
-  1. `EstrategiaFilaDeWafers`: atende as encomendas pendentes por ordem de
-     chegada, como uma fila de wafers entrando na linha.
-  2. `EstrategiaLoteMaximo`: prioriza a encomenda pendente com mais unidades,
-     rodando primeiro o maior lote.
-  3. `EstrategiaRendimentoMaximo`: considera só as encomendas financeiramente
-     viáveis (`Demanda.verificarViabilidadeFinanceira`) e escolhe a que rende mais
-     processadores sem estourar o budget.
-- `executarProximaProducao()` pede a encomenda à estratégia ativa e então fabrica
-  uma unidade. As estratégias apenas escolhem: não mexem no budget nem no estoque.
+1. TRATAMENTO DE ERROS E EXCEÇÕES DE DOMÍNIO (NOVO - TAREFA 4)
+Para garantir a robustez do sistema, abandonámos os retornos silenciosos nas operações críticas de negócio. Em vez disso, implementámos uma hierarquia própria de exceções a herdar de RuntimeException. A classe base PlantaException agrupa erros gerais, enquanto as subclasses (RecursoInsuficienteException, MaquinaIndisponivelException e DemandaInvalidaException) traduzem violações específicas das regras do domínio. Isto permitiu-nos capturar os erros na camada de interface (Main.java) e fornecer feedback claro ao utilizador, redirecionando-o para o menu em vez de encerrar o programa abruptamente ou usar blocos catch genéricos vazios.
 
-2. ENUMERAÇÃO StatusDemanda
-O antigo booleano `atendida` virou o enum `StatusDemanda`, sempre comparado com
-`==`. As transições ficam dentro de `Demanda`:
-- PENDENTE -> EM_PRODUCAO: `iniciarProducao()`, quando a encomenda entra na linha
-  (escolhida pela estratégia ou manualmente);
-- EM_PRODUCAO -> PENDENTE: `registrarUnidadeProduzida()` ao terminar uma unidade,
-  se ainda restarem unidades, para que a estratégia possa escolhê-la de novo no
-  próximo ciclo. `interromperProducao()` faz o mesmo se a linha parar;
-- EM_PRODUCAO -> CONCLUIDA: `registrarUnidadeProduzida()` na última unidade;
-- CANCELADA: `cancelar()`, quando falta wafer ou budget para fabricar.
-Uma encomenda CONCLUIDA não pode ser cancelada e uma CANCELADA não pode ser
-concluída. Para reativar uma encomenda cancelada, o usuário atualiza a quantidade
-dela, e ela volta a PENDENTE. Em "Demandas > Listar demandas" aparece o status de
-cada encomenda, via `getDescricao()`.
+2. CONSISTÊNCIA DE ESTADO E VALIDAÇÃO (NOVO - TAREFA 4)
+Para evitar estados inconsistentes (exemplo: deduzir orçamento do sistema e depois a produção falhar a meio do processo por avaria de uma máquina), adotámos o princípio de validar todas as pré-condições antes de efetuar qualquer mutação de estado. Na lógica de negócio, os métodos verificam primeiro a disponibilidade de matéria-prima, o orçamento (budget) e o estado (saúde) de todas as máquinas da linha. Apenas se todas estas validações passarem sem lançar exceções é que os recursos são consumidos e o estado do produto avança. Adicionalmente, entradas de dados inválidas (como quantidades negativas ou texto onde se esperam números) são barradas imediatamente na entrada da consola via Scanner na classe Main.
 
-3. INTERFACE Auditavel
-`Auditavel` (`gerarRelatorioDiagnostico()` e `precisaManutencao()`) é
-implementada por duas hierarquias sem relação de herança:
-- `Maquina`: precisa de manutenção quando a saúde fica abaixo de 30;
-- `Produto`: fica em risco quando a probabilidade de falha acumulada passa de 0.5.
-O relatório geral de auditoria junta máquinas e produtos numa única
-`ArrayList<Auditavel>` e percorre a lista sem saber o tipo concreto de cada item.
-"Detalhar máquinas" e "Detalhar produtos" usam o mesmo método
-(`exibirRelatorioAuditoria`), marcando os itens críticos com [ALERTA].
+3. PADRÃO STRATEGY: SELEÇÃO DE ENCOMENDAS
+A escolha de qual encomenda produzir a seguir é feita por uma estratégia trocável em tempo de execução.
+- Contexto: GerenciadorProducao guarda uma referência estrategiaAtual do tipo EstrategiaProducao e a troca via setEstrategia(...). Ele depende apenas da interface; só a Main instancia as classes concretas.
+- Estratégias: EstrategiaFilaDeWafers (ordem de chegada), EstrategiaLoteMaximo (maior volume) e EstrategiaRendimentoMaximo (viabilidade financeira).
 
-4. DESGASTE PROGRESSIVO DAS MÁQUINAS
-A cada uso, `Maquina.aplicarDesgaste(multiplicador)` tira da saúde (0 a 100) um
-valor aleatório entre 0 e 3 pontos, multiplicado pelo fator de desgaste do
-cenário. A chance de falha aumenta conforme a saúde cai:
-falhaReal = (falhaBase + ((100 - saude) / 100) * 0.4) * multiplicadorFalhaCenario,
-limitada a 100%. Com saúde 0 a máquina está quebrada (`estaQuebrada()`). Antes de
-cada fabricação o `GerenciadorProducao` confere todas as máquinas; se alguma
-estiver quebrada, a linha para antes de gastar wafer e a encomenda volta a
-PENDENTE. No submenu "Auditoria e manutenção" é possível recalibrar as máquinas
-com saúde abaixo de 30, por R$ 300 cada, voltando-as a 100%.
+4. ENUMERAÇÃO StatusDemanda
+O estado da demanda é gerido pelo enum StatusDemanda. As transições ocorrem dentro de Demanda:
+- PENDENTE -> EM_PRODUCAO: iniciarProducao(), quando a encomenda entra na linha.
+- EM_PRODUCAO -> PENDENTE: registrarUnidadeProduzida() ao terminar uma unidade, se ainda restarem unidades.
+- EM_PRODUCAO -> CONCLUIDA: registrarUnidadeProduzida() na última unidade.
+- CANCELADA: cancelar(), quando falta wafer ou budget para fabricar.
 
-5. CENÁRIOS DE OPERAÇÃO
-O enum `Cenario` é escolhido logo no início, e o `GerenciadorProducao` é criado
-com os parâmetros dele:
-- IDEAL: budget de R$ 8000, falha x0.6, desgaste x0.5;
-- APOCALIPTICO (crise do silício): budget de R$ 3000, falha x1.6, desgaste x2.0.
-O multiplicador de falha é repassado para cada máquina, então afeta tanto os
-defeitos introduzidos na litografia e no encapsulamento quanto a rejeição na
-metrologia. Nos nossos testes, a mesma encomenda de Torvalds-X16 saiu quase toda
-aprovada no cenário Ideal e quase toda reprovada no Apocalíptico.
+5. INTERFACE Auditavel
+Auditavel (gerarRelatorioDiagnostico() e precisaManutencao()) é implementada por Maquina e Produto.
+- Maquina: precisa de manutenção quando a saúde fica abaixo de 30.
+- Produto: fica em risco quando a probabilidade de falha acumulada passa de 0.5.
+O relatório geral de auditoria junta máquinas e produtos numa única ArrayList<Auditavel> e percorre a lista polimorficamente.
 
-6. ARMAZÉM DE PRODUTOS ACABADOS
-"Consultar > Ver armazém" é separado de "Ver estoque de matéria-prima", que mostra
-o wafer bruto. O armazém agrupa os processadores por lote (modelo) e mostra, para
-cada lote: tipo, quantidade, aprovados e rejeitados na metrologia, qualidade,
-risco médio e quantos estão em risco segundo `precisaManutencao()`.
+6. DESGASTE PROGRESSIVO DAS MÁQUINAS
+A cada uso, Maquina.aplicarDesgaste() retira da saúde um valor aleatório multiplicado pelo fator do cenário. A chance de falha aumenta conforme a saúde cai. Com saúde 0 a máquina está avariada. A linha de produção interrompe a fabricação caso detete uma máquina avariada, exigindo manutenção no submenu dedicado (R$ 300 por máquina).
 
-7. MENU
-O cabeçalho mostra a estratégia atual, o cenário ativo e o budget. As funções
-estão divididas em submenus: Demandas, Fabricação, Consultar, Comprar
-matéria-prima, Gerenciar estratégia e Auditoria e manutenção. Os eventos da linha
-aparecem com mensagens do tema, como "[METROLOGIA] ... defeito detectado no die",
-"[CANCELADA] Wafer insuficiente..." e "[PARADA] ... está quebrada".
-================================================================================
+7. CENÁRIOS DE OPERAÇÃO
+O enum Cenario é escolhido no início:
+- IDEAL: budget de R$ 50000, falha x1.0, desgaste x1.0.
+- APOCALIPTICO: budget de R$ 15000, falha x2.5, desgaste x3.0.
+O multiplicador afeta defeitos na litografia e rejeição na metrologia, alterando drasticamente a taxa de aprovação final.
+
+8. ARMAZÉM DE PRODUTOS ACABADOS
+O armazém agrupa os processadores por lote (modelo) e exibe estatísticas vitais: tipo, quantidade, aprovados e rejeitados na metrologia, qualidade base, risco médio e componentes em risco.
+
+9. MENU E INTEGRAÇÃO
+O cabeçalho exibe continuamente a estratégia atual, o cenário ativo e o budget. Os eventos da linha geram feedback contextual ("[METROLOGIA] ...", "[CANCELADA] ...", "[PARADA] ..."), agora reforçado pela captura de exceções que devolve o utilizador ao menu sem interrupções críticas.
