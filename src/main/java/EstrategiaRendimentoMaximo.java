@@ -8,6 +8,12 @@ import java.util.List;
  */
 public class EstrategiaRendimentoMaximo implements EstrategiaProducao {
 
+    /**
+     * Cria a estratégia Rendimento Máximo. Ela não guarda estado entre as seleções.
+     */
+    public EstrategiaRendimentoMaximo() {
+    }
+
     private static final int CUSTO_INSUMO_PADRAO = 10;
     private static final int INSUMO_POR_UNIDADE_PADRAO = 1;
 

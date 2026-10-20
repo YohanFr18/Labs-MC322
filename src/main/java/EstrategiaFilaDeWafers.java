@@ -9,10 +9,16 @@ import java.util.List;
 public class EstrategiaFilaDeWafers implements EstrategiaProducao {
 
     /**
-     * Seleciona a primeira demanda da lista que se encontre no estado PENDENTE.
+     * Cria a estratégia Fila de Wafers. Ela não guarda estado entre as seleções.
+     */
+    public EstrategiaFilaDeWafers() {
+    }
+
+    /**
+     * Seleciona a primeira demanda da lista que esteja no estado PENDENTE.
      * Não tem em conta o orçamento, a viabilidade ou a dimensão da encomenda.
      *
-     * @param demandas Lista de demandas registadas no sistema.
+     * @param demandas Lista de demandas registradas no sistema.
      * @param orcamentoDisponivel Orçamento da fábrica (não utilizado nesta estratégia).
      * @return A primeira {@link Demanda} pendente, ou {@code null} se não houver demandas válidas.
      */

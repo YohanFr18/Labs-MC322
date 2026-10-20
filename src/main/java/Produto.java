@@ -1,6 +1,6 @@
 /**
  * Classe abstrata que representa um processador físico a ser manufaturado.
- * Implementa a interface Auditavel para permitir o rastreio do seu risco estrutural.
+ * Implementa a interface Auditavel para permitir o rastreamento do seu risco estrutural.
  *
  * @author Victor Rimes e Yohan Rocha
  */
@@ -47,10 +47,18 @@ public abstract class Produto implements Auditavel {
      */
     public abstract boolean processar();
 
-    /** @return O tempo estimado em ciclos para concluir este modelo. */
+    /**
+     * Calcula o tempo de produção a partir do tempo base do modelo, da matéria-prima e da qualidade.
+     *
+     * @return O tempo estimado em ciclos para concluir este modelo.
+     */
     public abstract int calcularTempoProducao();
 
-    /** @return A classificação da gama deste modelo (ex: Alta Qualidade). */
+    /**
+     * Retorna a categoria do modelo exibida no armazém.
+     *
+     * @return A classificação de qualidade deste modelo (ex.: Processador de Alta Qualidade).
+     */
     public abstract String getTipo();
 
     /**
@@ -66,11 +74,52 @@ public abstract class Produto implements Auditavel {
         }
     }
 
+    /**
+     * Retorna quanto wafer uma unidade deste modelo consome.
+     *
+     * @return Matéria-prima por unidade, em mm2.
+     */
     public int getQuantidadeMateriaPrimaPorUnidade() { return quantidadeMateriaPrimaPorUnidade; }
+
+    /**
+     * Retorna o identificador sequencial da unidade.
+     *
+     * @return Identificador da unidade (ex.: CPU-7).
+     */
     public String getId() { return id; }
+
+    /**
+     * Retorna o nome do modelo.
+     *
+     * @return Nome do modelo (ex.: Turing-X4).
+     */
     public String getNome() { return nome; }
+
+    /**
+     * Retorna em que etapa da linha a unidade está.
+     *
+     * @return Status atual do produto.
+     */
     public StatusProduto getStatus() { return status; }
+
+    /**
+     * Retorna o padrão de qualidade do modelo; quanto maior, mais rígida a inspeção.
+     *
+     * @return Qualidade do modelo, entre 0 e 1.
+     */
     public float getQualidade() { return qualidade; }
+
+    /**
+     * Atualiza a etapa da unidade na linha (usado pelas estações).
+     *
+     * @param status Novo status do produto.
+     */
     public void setStatus(StatusProduto status) { this.status = status; }
+
+    /**
+     * Retorna o risco acumulado pelas falhas das máquinas durante a fabricação.
+     *
+     * @return Probabilidade de falha acumulada, entre 0 e 1.
+     */
     public float getProbabilidadeFalhaAcumulada() { return probabilidadeFalhaAcumulada; }
 }

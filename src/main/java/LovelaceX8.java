@@ -1,4 +1,14 @@
+/**
+ * Processador Lovelace-X8, o modelo intermediário (média qualidade) da SMART FOUNDRY.
+ * Consome 320 mm2 de wafer por unidade, tem qualidade 0,7 e tempo base de
+ * produção de 80 ciclos.
+ *
+ * @author Victor Rimes e Yohan Rocha
+ */
 public class LovelaceX8 extends Produto {
+    /**
+     * Cria uma unidade do Lovelace-X8, aguardando processamento.
+     */
     public LovelaceX8() {
         super("Lovelace-X8", 320, 0.7f);
     }

@@ -16,7 +16,7 @@ public class EstacaoEncapsulamento extends Maquina {
 
     /**
      * Executa o processo de encapsulamento no produto fornecido.
-     * O produto apenas pode ser encapsulado se já se encontrar no estado PROCESSADO.
+     * O produto apenas pode ser encapsulado se já estiver no estado PROCESSADO.
      * Em caso de falha mecânica ou operacional da máquina, o produto sofre um incremento na sua probabilidade de falha acumulada.
      *
      * @param produto Instância do produto a ser encapsulado.

@@ -1,0 +1,21 @@
+plugins {
+    id 'application'
+}
+
+application {
+    mainClass = 'Main'
+}
+
+tasks.withType(JavaCompile).configureEach {
+    options.encoding = 'UTF-8'
+}
+
+tasks.withType(Javadoc).configureEach {
+    options.encoding = 'UTF-8'
+    options.charSet = 'UTF-8'
+}
+
+// Sem isso o Gradle não repassa o teclado para a aplicação e o Scanner recebe EOF
+tasks.named('run') {
+    standardInput = System.in
+}

@@ -5,7 +5,9 @@
  * @author Victor Rimes e Yohan Rocha
  */
 public enum Cenario {
+    /** Mercado estável: budget de R$ 50000 e máquinas com falha e desgaste normais. */
     IDEAL("Cenário Ideal", 50000.0, 1.0f, 1.0),
+    /** Crise do silício: budget de R$ 15000, falhas 2,5x mais prováveis e desgaste 3x mais rápido. */
     APOCALIPTICO("Crise do Silício", 15000.0, 2.5f, 3.0);
 
     private final String descricao;
@@ -20,12 +22,31 @@ public enum Cenario {
         this.multiplicadorDesgaste = multiplicadorDesgaste;
     }
 
-    /** @return Descrição do cenário para a interface. */
+    /**
+     * Retorna o nome do cenário exibido no cabeçalho do menu.
+     *
+     * @return Descrição do cenário para a interface.
+     */
     public String getDescricao() { return descricao; }
-    /** @return Valor financeiro inicial fornecido à fábrica. */
+
+    /**
+     * Retorna o budget com que a fábrica começa neste cenário.
+     *
+     * @return Valor financeiro inicial fornecido à fábrica.
+     */
     public double getBudgetInicial() { return budgetInicial; }
-    /** @return Fator que agrava a probabilidade de erro das máquinas. */
+
+    /**
+     * Retorna o multiplicador aplicado à probabilidade de falha de todas as máquinas.
+     *
+     * @return Fator que agrava a probabilidade de erro das máquinas.
+     */
     public float getMultiplicadorFalha() { return multiplicadorFalha; }
-    /** @return Fator que acelera a degradação da saúde mecânica. */
+
+    /**
+     * Retorna o multiplicador aplicado ao desgaste sofrido pelas máquinas a cada uso.
+     *
+     * @return Fator que acelera a degradação da saúde mecânica.
+     */
     public double getMultiplicadorDesgaste() { return multiplicadorDesgaste; }
 }

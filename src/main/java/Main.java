@@ -1,27 +1,31 @@
 import java.util.Scanner;
 
 /**
- * Classe principal que gere o ponto de entrada da aplicação e o loop de menus interativos da Smart Foundry.
- * É responsável por interagir com o utilizador, validar a entrada de dados (evitando falhas por tipos incorretos) 
+ * Classe principal que contém o ponto de entrada da aplicação e o loop de menus interativos da Smart Foundry.
+ * É responsável por interagir com o usuário, validar a entrada de dados (evitando falhas por tipos incorretos) 
  * e tratar adequadamente as exceções de domínio geradas pelo sistema.
  *
  * @author Victor Rimes e Yohan Rocha
  */
 public class Main {
+
+    // A Main só tem métodos estáticos, então não deve ser instanciada
+    private Main() {
+    }
     
     /**
-     * Lê a entrada do utilizador garantindo que apenas números inteiros são aceites,
-     * impedindo erros de InputMismatchException. Também previne falhas abruptas por fim de ficheiro (EOF / Ctrl+D).
+     * Lê a entrada do usuário garantindo que apenas números inteiros são aceitos,
+     * impedindo erros de InputMismatchException. Também previne falhas abruptas por fim de arquivo (EOF / Ctrl+D).
      *
-     * @param sc Scanner utilizado para ler os dados da consola.
-     * @param msg Mensagem apresentada ao utilizador antes de aguardar a entrada.
-     * @return O número inteiro introduzido e validado.
+     * @param sc Scanner utilizado para ler os dados do console.
+     * @param msg Mensagem apresentada ao usuário antes de aguardar a entrada.
+     * @return O número inteiro digitado e validado.
      */
     static int lerInteiro(Scanner sc, String msg) {
         System.out.print(msg);
         while (!sc.hasNextInt()) {
             if (!sc.hasNext()) { 
-                System.out.println("\nEntrada encerrada. A fechar a fábrica.");
+                System.out.println("\nEntrada encerrada. Fechando a fábrica.");
                 System.exit(0);
             }
             System.out.println("Entrada inválida. Digite apenas números inteiros.");
@@ -32,9 +36,9 @@ public class Main {
     }
 
     /**
-     * Imprime o cabeçalho formatado de uma secção específica do menu.
+     * Imprime o cabeçalho formatado de uma seção específica do menu.
      *
-     * @param titulo Título da secção a ser impresso no ecrã.
+     * @param titulo Título da seção a ser impresso na tela.
      */
     static void imprimirSecao(String titulo) {
         System.out.println("--------------------------------------------------------------");
@@ -59,10 +63,10 @@ public class Main {
     }
 
     /**
-     * Apresenta o menu inicial para o utilizador escolher o cenário de dificuldade da fábrica.
-     * Garante que o utilizador escolhe uma opção válida antes de prosseguir.
+     * Apresenta o menu inicial para o usuário escolher o cenário de dificuldade da fábrica.
+     * Garante que o usuário escolhe uma opção válida antes de prosseguir.
      *
-     * @param sc Scanner para ler a opção do utilizador.
+     * @param sc Scanner para ler a opção do usuário.
      * @return O {@link Cenario} selecionado (IDEAL ou APOCALIPTICO).
      */
     static Cenario escolherCenario(Scanner sc) {
@@ -87,7 +91,7 @@ public class Main {
     /**
      * Apresenta o menu para seleção de um modelo específico de processador.
      *
-     * @param sc Scanner para ler a opção do utilizador.
+     * @param sc Scanner para ler a opção do usuário.
      * @return A string correspondente ao nome do modelo selecionado, ou {@code null} se a opção for inválida.
      */
     static String escolherModelo(Scanner sc) {
@@ -106,10 +110,10 @@ public class Main {
     }
 
     /**
-     * Gere o submenu responsável por criar, atualizar e listar as demandas da fábrica.
+     * Controla o submenu responsável por criar, atualizar e listar as demandas da fábrica.
      * Trata eventuais exceções decorrentes da introdução de quantidades inválidas.
      *
-     * @param sc Scanner para ler as interações do utilizador.
+     * @param sc Scanner para ler as interações do usuário.
      * @param gerenciador Instância ativa do gerenciador de produção.
      */
     static void menuDemandas(Scanner sc, GerenciadorProducao gerenciador) {
@@ -151,11 +155,11 @@ public class Main {
     }
 
     /**
-     * Gere o submenu de fabrico de processadores.
+     * Controla o submenu de fabricação de processadores.
      * Captura as exceções de domínio da aplicação, permitindo a recuperação de erros como falta de recursos 
-     * ou avaria de máquinas sem encerrar o programa abruptamente.
+     * ou quebra de máquinas sem encerrar o programa abruptamente.
      *
-     * @param sc Scanner para ler as interações do utilizador.
+     * @param sc Scanner para ler as interações do usuário.
      * @param gerenciador Instância ativa do gerenciador de produção.
      */
     static void menuFabricacao(Scanner sc, GerenciadorProducao gerenciador) {
@@ -191,7 +195,7 @@ public class Main {
                     System.out.println("Nenhuma alteração foi realizada no estoque ou orçamento.");
                 } catch (MaquinaIndisponivelException e) {
                     System.out.println("ERRO ===\nProdução interrompida: " + e.getMessage());
-                    System.out.println("Realize a manutenção da máquina na secção de Auditoria.");
+                    System.out.println("Realize a manutenção da máquina na seção de Auditoria.");
                 } catch (DemandaInvalidaException e) {
                     System.out.println("ERRO ===\n" + e.getMessage());
                 } catch (PlantaException e) {
@@ -204,9 +208,9 @@ public class Main {
     }
 
     /**
-     * Gere o submenu responsável por consultar o armazém de produtos finalizados e o estado do inventário de matérias-primas.
+     * Controla o submenu responsável por consultar o armazém de produtos finalizados e o estado do inventário de matérias-primas.
      *
-     * @param sc Scanner para ler as interações do utilizador.
+     * @param sc Scanner para ler as interações do usuário.
      * @param gerenciador Instância ativa do gerenciador de produção.
      * @param wafer Instância da matéria-prima utilizada na fábrica.
      */
@@ -233,7 +237,7 @@ public class Main {
     }
 
     /**
-     * Gere o submenu que permite alterar a estratégia de produção utilizada pela fábrica.
+     * Controla o submenu que permite alterar a estratégia de produção utilizada pela fábrica.
      *
      * @param sc Scanner para ler a opção selecionada.
      * @param gerenciador Instância ativa do gerenciador de produção a ser atualizada.
@@ -265,10 +269,10 @@ public class Main {
     }
 
     /**
-     * Gere o submenu focado na auditoria da fábrica, permitindo inspecionar máquinas, produtos
+     * Controla o submenu focado na auditoria da fábrica, permitindo inspecionar máquinas, produtos
      * e executar a manutenção preventiva do equipamento.
      *
-     * @param sc Scanner para ler as interações do utilizador.
+     * @param sc Scanner para ler as interações do usuário.
      * @param gerenciador Instância ativa do gerenciador de produção.
      */
     static void menuAuditoria(Scanner sc, GerenciadorProducao gerenciador) {
@@ -306,7 +310,7 @@ public class Main {
      * Método principal responsável por iniciar a aplicação, configurar os componentes da fábrica
      * e executar o loop do menu central.
      *
-     * @param args Argumentos da linha de comandos (não utilizados nesta aplicação).
+     * @param args Argumentos da linha de comando (não utilizados nesta aplicação).
      */
     public static void main(String[] args) {
         System.out.println("""
@@ -383,7 +387,7 @@ public class Main {
                 case 5 -> menuEstrategia(sc, gerenciador);
                 case 6 -> menuAuditoria(sc, gerenciador);
                 case 0 -> {
-                    System.out.println("A desligar a linha de litografia. Até à próxima, SMART FOUNDRY!");
+                    System.out.println("Desligando a linha de litografia. Até a próxima, SMART FOUNDRY!");
                     sc.close();
                     return;
                 }

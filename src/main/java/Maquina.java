@@ -37,6 +37,11 @@ public abstract class Maquina implements Auditavel {
         this.multiplicadorFalhaCenario = 1.0f;
     }
 
+    /**
+     * Define o multiplicador do cenário ativo, aplicado sobre a probabilidade de falha.
+     *
+     * @param multiplicadorFalhaCenario Fator do cenário (acima de 1 aumenta as falhas).
+     */
     public void setMultiplicadorFalhaCenario(float multiplicadorFalhaCenario) {
         this.multiplicadorFalhaCenario = multiplicadorFalhaCenario;
     }
@@ -123,25 +128,74 @@ public abstract class Maquina implements Auditavel {
     /**
      * Processa um único wafer/produto nesta fase específica da linha de montagem.
      *
-     * @param produto Instância do produto que está a passar pela máquina.
+     * @param produto Instância do produto que está passando pela máquina.
      * @return {@code true} se o processamento avançou com sucesso, {@code false} em caso de bloqueio ou erro grave.
      */
     public abstract boolean processar(Produto produto);
 
     /**
-     * Retorna o tipo funcional da máquina para efeitos de registo e auditoria.
+     * Retorna o tipo funcional da máquina para fins de registro e auditoria.
      *
      * @return String identificando o tipo (ex: "Processamento", "Inspeção").
      */
     public abstract String getTipo();
 
+    /**
+     * Liga a máquina; só máquinas ligadas processam produtos.
+     */
     public void ligar() { ligada = true; }
+
+    /**
+     * Desliga a máquina, tirando-a da linha de produção.
+     */
     public void desligar() { ligada = false; }
+
+    /**
+     * Retorna o nome da máquina.
+     *
+     * @return Nome identificador da máquina.
+     */
     public String getNome() { return nome; }
+
+    /**
+     * Retorna quanto a máquina custa a cada unidade processada.
+     *
+     * @return Custo de operação, em reais.
+     */
     public double getCustoOperacao() { return custoOperacao; }
+
+    /**
+     * Informa se a máquina está ligada.
+     *
+     * @return {@code true} se a máquina estiver ligada.
+     */
     public boolean estaLigada() { return ligada; }
+
+    /**
+     * Retorna a probabilidade base de falha, sem desgaste nem multiplicador de cenário.
+     *
+     * @return Probabilidade base de falha, entre 0 e 1.
+     */
     public float getProbabilidadeFalha() { return probabilidadeFalha; }
+
+    /**
+     * Retorna a capacidade máxima de processamento da máquina.
+     *
+     * @return Capacidade máxima de processamento.
+     */
     public int getCapacidadeMaxima() { return capacidadeMaxima; }
+
+    /**
+     * Retorna a saúde atual da máquina; com 0% ela está quebrada.
+     *
+     * @return Saúde atual, entre 0 e 100.
+     */
     public double getSaude() { return saude; }
+
+    /**
+     * Define a saúde da máquina (usado na manutenção), limitada ao intervalo de 0 a 100.
+     *
+     * @param saude Nova saúde da máquina.
+     */
     public void setSaude(double saude) { this.saude = Math.min(100.0, Math.max(0.0, saude)); }
 }

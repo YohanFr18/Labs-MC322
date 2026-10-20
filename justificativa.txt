@@ -6,10 +6,20 @@ Integrantes: Victor Rimes (RA 301314) & Yohan Rocha (RA 238967)
 ================================================================================
 
 1. TRATAMENTO DE ERROS E EXCEÇÕES DE DOMÍNIO (NOVO - TAREFA 4)
-Para garantir a robustez do sistema, abandonámos os retornos silenciosos nas operações críticas de negócio. Em vez disso, implementámos uma hierarquia própria de exceções a herdar de RuntimeException. A classe base PlantaException agrupa erros gerais, enquanto as subclasses (RecursoInsuficienteException, MaquinaIndisponivelException e DemandaInvalidaException) traduzem violações específicas das regras do domínio. Isto permitiu-nos capturar os erros na camada de interface (Main.java) e fornecer feedback claro ao utilizador, redirecionando-o para o menu em vez de encerrar o programa abruptamente ou usar blocos catch genéricos vazios.
+As operações de negócio deixaram de sinalizar problemas com println ou retornos silenciosos (false/null) e passaram a lançar exceções. Criamos uma hierarquia pequena, todas herdando de RuntimeException, para não obrigar cada camada a declarar throws:
+- PlantaException: base da hierarquia; usada diretamente quando nenhuma estratégia de produção está definida.
+- RecursoInsuficienteException: falta de wafer (respeitando a reserva mínima), budget insuficiente para fabricar, comprar matéria-prima ou fazer manutenção.
+- DemandaInvalidaException: modelo sem demanda registrada, quantidade negativa, demanda que não está pendente ou sem unidades, e estratégia que não encontra demanda elegível.
+- MaquinaIndisponivelException: máquina quebrada (saúde 0%) ou desligada.
+Quem lança é a camada de negócio (GerenciadorProducao, Demanda, MateriaPrima); quem captura é a Main, que mostra a mensagem e devolve o usuário ao menu. Cada catch trata um tipo específico de exceção e não há catch vazio nem catch(Exception).
+Separamos também erros de entrada de erros de regra de negócio: texto no lugar de número, opção inexistente e quantidade menor ou igual a zero são barrados pela Main antes de chamar o negócio. Se mesmo assim uma quantidade inválida chegar a MateriaPrima ou a comprarMateriaPrima, isso é um bug de quem chamou, e por isso lançamos IllegalArgumentException (exceção padrão do Java) em vez de uma exceção de domínio.
 
 2. CONSISTÊNCIA DE ESTADO E VALIDAÇÃO (NOVO - TAREFA 4)
-Para evitar estados inconsistentes (exemplo: deduzir orçamento do sistema e depois a produção falhar a meio do processo por avaria de uma máquina), adotámos o princípio de validar todas as pré-condições antes de efetuar qualquer mutação de estado. Na lógica de negócio, os métodos verificam primeiro a disponibilidade de matéria-prima, o orçamento (budget) e o estado (saúde) de todas as máquinas da linha. Apenas se todas estas validações passarem sem lançar exceções é que os recursos são consumidos e o estado do produto avança. Adicionalmente, entradas de dados inválidas (como quantidades negativas ou texto onde se esperam números) são barradas imediatamente na entrada da consola via Scanner na classe Main.
+Toda operação valida suas condições antes de alterar qualquer estado, para que uma exceção nunca deixe a planta modificada pela metade.
+- Fabricação (GerenciadorProducao.fabricarUnidade): dividida em duas fases. Na primeira, só verificações: se a demanda pode ser produzida, se há wafer acima da reserva mínima, se o budget cobre o custo e se todas as máquinas estão ligadas e não quebradas. Na segunda, só alterações: a demanda entra em produção, as estações processam a unidade, o desgaste é aplicado, o budget é debitado, o wafer é consumido e a unidade é registrada. O desgaste só é aplicado depois que todas as estações processaram, para que uma falha no meio da linha não deixe máquinas desgastadas sem que a unidade tenha sido fabricada.
+- Exceção deliberada: quando falta wafer ou budget, a encomenda é marcada como CANCELADA antes de a exceção ser lançada. É uma regra de negócio mantida da Tarefa 3, e não um estado parcial: sem ela, a estratégia Fila de Wafers escolheria sempre a mesma encomenda inviável. Estoque e budget não são alterados, e a mensagem de erro avisa o usuário do cancelamento e de como reativar a encomenda.
+- Manutenção (realizarManutencao): tudo ou nada. Se o budget não cobre todas as máquinas que precisam de manutenção, nenhuma é recalibrada e nada é cobrado.
+- Compra de matéria-prima: o custo é verificado antes de debitar o budget e adicionar o estoque.
 
 3. PADRÃO STRATEGY: SELEÇÃO DE ENCOMENDAS
 A escolha de qual encomenda produzir a seguir é feita por uma estratégia trocável em tempo de execução.
@@ -17,11 +27,13 @@ A escolha de qual encomenda produzir a seguir é feita por uma estratégia troc�
 - Estratégias: EstrategiaFilaDeWafers (ordem de chegada), EstrategiaLoteMaximo (maior volume) e EstrategiaRendimentoMaximo (viabilidade financeira).
 
 4. ENUMERAÇÃO StatusDemanda
-O estado da demanda é gerido pelo enum StatusDemanda. As transições ocorrem dentro de Demanda:
+O estado da demanda é controlado pelo enum StatusDemanda. As transições ocorrem dentro de Demanda:
 - PENDENTE -> EM_PRODUCAO: iniciarProducao(), quando a encomenda entra na linha.
 - EM_PRODUCAO -> PENDENTE: registrarUnidadeProduzida() ao terminar uma unidade, se ainda restarem unidades.
 - EM_PRODUCAO -> CONCLUIDA: registrarUnidadeProduzida() na última unidade.
-- CANCELADA: cancelar(), quando falta wafer ou budget para fabricar.
+- EM_PRODUCAO -> PENDENTE: interromperProducao(), se uma estação não conseguir processar a unidade.
+- PENDENTE -> CANCELADA: cancelar(), quando falta wafer ou budget para fabricar.
+- CANCELADA/CONCLUIDA -> PENDENTE: atualizarQuantidade() com uma quantidade positiva reativa a encomenda.
 
 5. INTERFACE Auditavel
 Auditavel (gerarRelatorioDiagnostico() e precisaManutencao()) é implementada por Maquina e Produto.
@@ -30,7 +42,7 @@ Auditavel (gerarRelatorioDiagnostico() e precisaManutencao()) é implementada po
 O relatório geral de auditoria junta máquinas e produtos numa única ArrayList<Auditavel> e percorre a lista polimorficamente.
 
 6. DESGASTE PROGRESSIVO DAS MÁQUINAS
-A cada uso, Maquina.aplicarDesgaste() retira da saúde um valor aleatório multiplicado pelo fator do cenário. A chance de falha aumenta conforme a saúde cai. Com saúde 0 a máquina está avariada. A linha de produção interrompe a fabricação caso detete uma máquina avariada, exigindo manutenção no submenu dedicado (R$ 300 por máquina).
+A cada uso, Maquina.aplicarDesgaste() retira da saúde um valor aleatório multiplicado pelo fator do cenário. A chance de falha aumenta conforme a saúde cai. Com saúde 0 a máquina está quebrada. Antes de fabricar, a linha verifica todas as máquinas e, se alguma estiver quebrada, lança MaquinaIndisponivelException, exigindo manutenção no submenu dedicado (R$ 300 por máquina).
 
 7. CENÁRIOS DE OPERAÇÃO
 O enum Cenario é escolhido no início:
@@ -42,4 +54,7 @@ O multiplicador afeta defeitos na litografia e rejeição na metrologia, alteran
 O armazém agrupa os processadores por lote (modelo) e exibe estatísticas vitais: tipo, quantidade, aprovados e rejeitados na metrologia, qualidade base, risco médio e componentes em risco.
 
 9. MENU E INTEGRAÇÃO
-O cabeçalho exibe continuamente a estratégia atual, o cenário ativo e o budget. Os eventos da linha geram feedback contextual ("[METROLOGIA] ...", "[CANCELADA] ...", "[PARADA] ..."), agora reforçado pela captura de exceções que devolve o utilizador ao menu sem interrupções críticas.
+O cabeçalho exibe continuamente a estratégia atual, o cenário ativo e o budget. Os eventos bem-sucedidos da linha geram feedback contextual ("[OK] ...", "[METROLOGIA] ...", "[REPARO] ..."). Os erros chegam à Main como exceções e são exibidos em um bloco "ERRO" com o motivo e, quando possível, como corrigir; depois o usuário volta ao menu.
+
+10. ORGANIZAÇÃO DO PROJETO COM GRADLE (NOVO - TAREFA 4)
+O projeto segue a estrutura padrão do Gradle (código em src/main/java) e usa o plugin application, com Main como classe principal. O build.gradle contém apenas configuração de build: codificação UTF-8 para compilação e Javadoc, e o repasse da entrada padrão para a tarefa run (sem isso o Scanner não recebe o que é digitado). O Gradle Wrapper (gradlew, gradlew.bat e gradle/wrapper) permite compilar sem instalar o Gradle.

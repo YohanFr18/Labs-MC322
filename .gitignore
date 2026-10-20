@@ -6,3 +6,8 @@ out/
 *.class
 
 .gitattributes
+.gradle/
+build/
+.classpath
+.project
+.settings/
