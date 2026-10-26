@@ -23,7 +23,8 @@ public class GerenciadorProducao {
 
     private ArrayList<Demanda> demandas;
     private ArrayList<Produto> produtosFabricados;
-    private ArrayList<Maquina> maquinas;
+    // Substituição direta do ArrayList pelo Agrupador estrutural
+    private LinhaDeProducao linhaPrincipal;
     private MateriaPrima materiaPrima;
     private double budget;
     private Cenario cenarioAtivo;
@@ -35,7 +36,7 @@ public class GerenciadorProducao {
      *
      * @param materiaPrima Estoque de wafer usado na produção.
      * @param cenario Cenário de operação, que define o budget inicial e os
-     *                multiplicadores de falha e desgaste.
+     *                 multiplicadores de falha e desgaste.
      */
     public GerenciadorProducao(MateriaPrima materiaPrima, Cenario cenario) {
         this.materiaPrima = materiaPrima;
@@ -43,11 +44,15 @@ public class GerenciadorProducao {
         this.budget = cenario.getBudgetInicial();
         demandas = new ArrayList<>();
         produtosFabricados = new ArrayList<>();
-        maquinas = new ArrayList<>();
-        maquinas.add(new EstacaoLitografia());
-        maquinas.add(new EstacaoEncapsulamento());
-        maquinas.add(new EstacaoMetrologia());
-        for (Maquina m : maquinas) {
+        
+        // Inicialização da Linha de Produção
+        linhaPrincipal = new LinhaDeProducao();
+        linhaPrincipal.adicionarMaquina(new EstacaoLitografia());
+        linhaPrincipal.adicionarMaquina(new EstacaoEncapsulamento());
+        linhaPrincipal.adicionarMaquina(new EstacaoMetrologia());
+        
+        // Acesso indireto protegido
+        for (Maquina m : linhaPrincipal.getMaquinas()) {
             m.ligar();
             m.setMultiplicadorFalhaCenario(cenario.getMultiplicadorFalha());
         }
@@ -177,7 +182,8 @@ public class GerenciadorProducao {
      */
     public void gerarAuditoriaGeral() {
         ArrayList<Auditavel> componentes = new ArrayList<>();
-        for (Maquina m : maquinas) {
+        // Delegação para o agrupador estrutural
+        for (Maquina m : linhaPrincipal.getMaquinas()) {
             componentes.add(m);
         }
         for (Produto p : produtosFabricados) {
@@ -191,7 +197,7 @@ public class GerenciadorProducao {
      */
     public void detalharMaquinas() {
         ArrayList<Auditavel> componentes = new ArrayList<>();
-        for (Maquina m : maquinas) {
+        for (Maquina m : linhaPrincipal.getMaquinas()) {
             componentes.add(m);
         }
         exibirRelatorioAuditoria("AUDITORIA DAS MÁQUINAS", componentes);
@@ -240,7 +246,7 @@ public class GerenciadorProducao {
      */
     public void realizarManutencao() {
         ArrayList<Maquina> precisamManutencao = new ArrayList<>();
-        for (Maquina m : maquinas) {
+        for (Maquina m : linhaPrincipal.getMaquinas()) {
             if (m.precisaManutencao()) {
                 precisamManutencao.add(m);
             }
@@ -382,7 +388,7 @@ public class GerenciadorProducao {
 
         // Verificamos todas as máquinas antes de começar, para não deixar
         // um wafer processado pela metade caso alguma esteja indisponível
-        for (Maquina m : maquinas) {
+        for (Maquina m : linhaPrincipal.getMaquinas()) {
             if (m.estaQuebrada()) {
                 throw new MaquinaIndisponivelException(m.getNome()
                         + " está quebrada (saúde 0%). Faça a manutenção no menu de Auditoria.");
@@ -394,7 +400,7 @@ public class GerenciadorProducao {
 
         // --- Fase 2: alterações de estado ---
         demanda.iniciarProducao();
-        for (Maquina m : maquinas) {
+        for (Maquina m : linhaPrincipal.getMaquinas()) {
             if (!m.processar(produto)) {
                 // Não deveria acontecer depois das validações, mas se acontecer
                 // devolvemos a demanda a PENDENTE antes de qualquer outra alteração
@@ -404,7 +410,7 @@ public class GerenciadorProducao {
             }
         }
         // O desgaste só é aplicado depois que todas as estações processaram a unidade
-        for (Maquina m : maquinas) {
+        for (Maquina m : linhaPrincipal.getMaquinas()) {
             m.aplicarDesgaste(cenarioAtivo.getMultiplicadorDesgaste());
         }
 
@@ -423,7 +429,7 @@ public class GerenciadorProducao {
 
     private double calcularCustoProducao() {
         double total = 0;
-        for (Maquina m : maquinas) {
+        for (Maquina m : linhaPrincipal.getMaquinas()) {
             total += m.getCustoOperacao();
         }
         return total;
