@@ -1,11 +1,38 @@
 ================================================================================
-JUSTIFICATIVA DO PROJETO - TAREFA 4: GRADLE, JAVADOC E TRATAMENTO DE ERROS
+JUSTIFICATIVA DO PROJETO - TAREFA 5: COMPOSIÇÃO, FASES DE CONSTRUÇÃO E ACOPLAMENTO
 SMART FOUNDRY - FABRICAÇÃO DE SEMICONDUTORES
 Disciplina: MC322 - Programação Orientada a Objetos
 Integrantes: Victor Rimes (RA 301314) & Yohan Rocha (RA 238967)
 ================================================================================
 
-1. TRATAMENTO DE ERROS E EXCEÇÕES DE DOMÍNIO (NOVO - TAREFA 4)
+1. COMPOSIÇÃO: A MÁQUINA E SUAS PARTES (NOVO - TAREFA 5)
+O Todo é a Maquina (estação da linha). Ela é composta por três partes, todas com estado, regras e desgaste próprios:
+- MotorEsteira (1:1): movimenta o wafer dentro da estação. Acumula desgaste a cada ciclo e entra em falha crítica ao chegar a 100%.
+- CamaraVaco (1:1): onde o wafer é processado. O desgaste corrói as vedações e, abaixo de 20% de integridade, a câmara perde o vácuo.
+- SensorTermico (1:N, guardado em List): monitora a temperatura. Perde calibração com o uso; quanto pior a calibração, maior o erro da leitura, e com calibração 0 o sensor fica inoperante.
+A cardinalidade segue o domínio: uma estação tem um único motor e uma única câmara, mas vários pontos de medição de temperatura. A quantidade de sensores varia por estação (Litografia 4, Metrologia 3, Encapsulamento 2), por isso a relação 1:N usa uma List. Usamos List e não Set porque os sensores têm ordem e numeração (Sensor-1, Sensor-2...) e aparecem nessa ordem na auditoria.
+Seguindo a responsabilidade única, as partes não sabem nada de budget, demanda ou estratégia: só desgastam, falham, são reparadas e informam o próprio estado.
+
+2. FASES DE CONSTRUÇÃO E CICLO DE VIDA (NOVO - TAREFA 5)
+A composição é estrita: o construtor da Maquina recebe apenas valores primitivos (nome, capacidade, probabilidade de falha, custo e quantidade de sensores) e executa ele mesmo o new de cada parte. Nenhuma parte é recebida de fora, compartilhada entre máquinas ou devolvida por getter, então quando a máquina deixa de existir suas partes também deixam. O construtor rejeita (IllegalArgumentException) uma quantidade de sensores menor que 1, garantindo que a máquina sempre nasce em estado válido e que a cardinalidade 1..* do diagrama vale no código.
+A manutenção também passa pelo Todo: Maquina.reparar() devolve a saúde a 100% e repara em cascata o motor, a câmara e todos os sensores.
+
+3. AGREGAÇÃO: A LINHA DE PRODUÇÃO (NOVO - TAREFA 5)
+As máquinas deixaram de ficar soltas em um ArrayList do GerenciadorProducao e passaram a pertencer a uma LinhaDeProducao. Essa relação é agregação, e não composição: as estações são criadas fora da linha (no GerenciadorProducao) e adicionadas com adicionarMaquina(); removerMaquina() tira uma estação da linha sem destruí-la, e ela poderia ser instalada em outra linha. Já a linha em si é criada pelo GerenciadorProducao no seu construtor e não é exposta, por isso aparece como composição no diagrama.
+getMaquinas() devolve Collections.unmodifiableList(), de modo que só a própria linha altera sua coleção.
+
+4. LEI DE DEMÉTER E AUDITORIA EM CASCATA (NOVO - TAREFA 5)
+Nenhuma classe fora da Maquina conhece MotorEsteira, CamaraVaco ou SensorTermico. A Maquina expõe métodos de alto nível que delegam às partes: aplicarDesgaste(), reparar(), isTemperaturaEstavel(), descreverAvaria() e recalibrarPressaoCamara(). O GerenciadorProducao e a Main falam com a linha e com as máquinas, nunca com as partes.
+A auditoria desce a hierarquia: LinhaDeProducao.gerarRelatorioDiagnostico() pede o relatório de cada máquina, e Maquina.gerarRelatorioDiagnostico() pede o obterStatus() de cada parte. Cada nível acrescenta uma indentação, formando o texto Linha > Estação > Componentes. As partes não implementam Auditavel: elas só informam seu estado para a máquina, que é quem decide se precisa de manutenção.
+
+5. PARTES QUE AFETAM O TODO (NOVO - TAREFA 5)
+- Motor em falha crítica ou câmara despressurizada param a estação.
+- Mais da metade dos sensores inoperantes também param a estação, porque o processo deixa de ser monitorado.
+- Um sensor indicando superaquecimento não para a estação, mas soma 15 pontos percentuais à probabilidade de falha. Na litografia e no encapsulamento isso aumenta o risco acumulado do chip; na metrologia, aumenta a chance de rejeição.
+Antes de fabricar, a linha verifica todas as estações; se alguma estiver parada, é lançada MaquinaIndisponivelException com a causa vinda da parte (ex.: "motor da esteira em falha crítica"), e a manutenção resolve o problema reparando as partes.
+O menu ganhou a opção "Linha de produção", que lista as estações, permite ligar e desligar cada uma (uma estação desligada bloqueia a fabricação) e exibe a auditoria estrutural, também disponível no menu de Auditoria. O diagrama de classes está em docs/ (diagrama-classes-tarefa5.png e o fonte editável .drawio).
+
+6. TRATAMENTO DE ERROS E EXCEÇÕES DE DOMÍNIO (NOVO - TAREFA 4)
 As operações de negócio deixaram de sinalizar problemas com println ou retornos silenciosos (false/null) e passaram a lançar exceções. Criamos uma hierarquia pequena, todas herdando de RuntimeException, para não obrigar cada camada a declarar throws:
 - PlantaException: base da hierarquia; usada diretamente quando nenhuma estratégia de produção está definida.
 - RecursoInsuficienteException: falta de wafer (respeitando a reserva mínima), budget insuficiente para fabricar, comprar matéria-prima ou fazer manutenção.
@@ -14,19 +41,19 @@ As operações de negócio deixaram de sinalizar problemas com println ou retorn
 Quem lança é a camada de negócio (GerenciadorProducao, Demanda, MateriaPrima); quem captura é a Main, que mostra a mensagem e devolve o usuário ao menu. Cada catch trata um tipo específico de exceção e não há catch vazio nem catch(Exception).
 Separamos também erros de entrada de erros de regra de negócio: texto no lugar de número, opção inexistente e quantidade menor ou igual a zero são barrados pela Main antes de chamar o negócio. Se mesmo assim uma quantidade inválida chegar a MateriaPrima ou a comprarMateriaPrima, isso é um bug de quem chamou, e por isso lançamos IllegalArgumentException (exceção padrão do Java) em vez de uma exceção de domínio.
 
-2. CONSISTÊNCIA DE ESTADO E VALIDAÇÃO (NOVO - TAREFA 4)
+7. CONSISTÊNCIA DE ESTADO E VALIDAÇÃO (NOVO - TAREFA 4)
 Toda operação valida suas condições antes de alterar qualquer estado, para que uma exceção nunca deixe a planta modificada pela metade.
 - Fabricação (GerenciadorProducao.fabricarUnidade): dividida em duas fases. Na primeira, só verificações: se a demanda pode ser produzida, se há wafer acima da reserva mínima, se o budget cobre o custo e se todas as máquinas estão ligadas e não quebradas. Na segunda, só alterações: a demanda entra em produção, as estações processam a unidade, o desgaste é aplicado, o budget é debitado, o wafer é consumido e a unidade é registrada. O desgaste só é aplicado depois que todas as estações processaram, para que uma falha no meio da linha não deixe máquinas desgastadas sem que a unidade tenha sido fabricada.
 - Exceção deliberada: quando falta wafer ou budget, a encomenda é marcada como CANCELADA antes de a exceção ser lançada. É uma regra de negócio mantida da Tarefa 3, e não um estado parcial: sem ela, a estratégia Fila de Wafers escolheria sempre a mesma encomenda inviável. Estoque e budget não são alterados, e a mensagem de erro avisa o usuário do cancelamento e de como reativar a encomenda.
 - Manutenção (realizarManutencao): tudo ou nada. Se o budget não cobre todas as máquinas que precisam de manutenção, nenhuma é recalibrada e nada é cobrado.
 - Compra de matéria-prima: o custo é verificado antes de debitar o budget e adicionar o estoque.
 
-3. PADRÃO STRATEGY: SELEÇÃO DE ENCOMENDAS
+8. PADRÃO STRATEGY: SELEÇÃO DE ENCOMENDAS
 A escolha de qual encomenda produzir a seguir é feita por uma estratégia trocável em tempo de execução.
 - Contexto: GerenciadorProducao guarda uma referência estrategiaAtual do tipo EstrategiaProducao e a troca via setEstrategia(...). Ele depende apenas da interface; só a Main instancia as classes concretas.
 - Estratégias: EstrategiaFilaDeWafers (ordem de chegada), EstrategiaLoteMaximo (maior volume) e EstrategiaRendimentoMaximo (viabilidade financeira).
 
-4. ENUMERAÇÃO StatusDemanda
+9. ENUMERAÇÃO StatusDemanda
 O estado da demanda é controlado pelo enum StatusDemanda. As transições ocorrem dentro de Demanda:
 - PENDENTE -> EM_PRODUCAO: iniciarProducao(), quando a encomenda entra na linha.
 - EM_PRODUCAO -> PENDENTE: registrarUnidadeProduzida() ao terminar uma unidade, se ainda restarem unidades.
@@ -35,26 +62,26 @@ O estado da demanda é controlado pelo enum StatusDemanda. As transições ocorr
 - PENDENTE -> CANCELADA: cancelar(), quando falta wafer ou budget para fabricar.
 - CANCELADA/CONCLUIDA -> PENDENTE: atualizarQuantidade() com uma quantidade positiva reativa a encomenda.
 
-5. INTERFACE Auditavel
-Auditavel (gerarRelatorioDiagnostico() e precisaManutencao()) é implementada por Maquina e Produto.
+10. INTERFACE Auditavel
+Auditavel (gerarRelatorioDiagnostico() e precisaManutencao()) é implementada por Maquina, Produto e, desde a Tarefa 5, LinhaDeProducao (ver seção 4).
 - Maquina: precisa de manutenção quando a saúde fica abaixo de 30.
 - Produto: fica em risco quando a probabilidade de falha acumulada passa de 0.5.
 O relatório geral de auditoria junta máquinas e produtos numa única ArrayList<Auditavel> e percorre a lista polimorficamente.
 
-6. DESGASTE PROGRESSIVO DAS MÁQUINAS
-A cada uso, Maquina.aplicarDesgaste() retira da saúde um valor aleatório multiplicado pelo fator do cenário. A chance de falha aumenta conforme a saúde cai. Com saúde 0 a máquina está quebrada. Antes de fabricar, a linha verifica todas as máquinas e, se alguma estiver quebrada, lança MaquinaIndisponivelException, exigindo manutenção no submenu dedicado (R$ 300 por máquina).
+11. DESGASTE PROGRESSIVO DAS MÁQUINAS
+A cada uso, Maquina.aplicarDesgaste() retira da saúde um valor aleatório multiplicado pelo fator do cenário. A chance de falha aumenta conforme a saúde cai. Com saúde 0, ou com uma parte essencial em falha (ver seção 5), a máquina está quebrada. Antes de fabricar, a linha verifica todas as máquinas e, se alguma estiver quebrada, lança MaquinaIndisponivelException, exigindo manutenção no submenu dedicado (R$ 300 por máquina).
 
-7. CENÁRIOS DE OPERAÇÃO
+12. CENÁRIOS DE OPERAÇÃO
 O enum Cenario é escolhido no início:
 - IDEAL: budget de R$ 50000, falha x1.0, desgaste x1.0.
 - APOCALIPTICO: budget de R$ 15000, falha x2.5, desgaste x3.0.
 O multiplicador afeta defeitos na litografia e rejeição na metrologia, alterando drasticamente a taxa de aprovação final.
 
-8. ARMAZÉM DE PRODUTOS ACABADOS
+13. ARMAZÉM DE PRODUTOS ACABADOS
 O armazém agrupa os processadores por lote (modelo) e exibe estatísticas vitais: tipo, quantidade, aprovados e rejeitados na metrologia, qualidade base, risco médio e componentes em risco.
 
-9. MENU E INTEGRAÇÃO
+14. MENU E INTEGRAÇÃO
 O cabeçalho exibe continuamente a estratégia atual, o cenário ativo e o budget. Os eventos bem-sucedidos da linha geram feedback contextual ("[OK] ...", "[METROLOGIA] ...", "[REPARO] ..."). Os erros chegam à Main como exceções e são exibidos em um bloco "ERRO" com o motivo e, quando possível, como corrigir; depois o usuário volta ao menu.
 
-10. ORGANIZAÇÃO DO PROJETO COM GRADLE (NOVO - TAREFA 4)
+15. ORGANIZAÇÃO DO PROJETO COM GRADLE (NOVO - TAREFA 4)
 O projeto segue a estrutura padrão do Gradle (código em src/main/java) e usa o plugin application, com Main como classe principal. O build.gradle contém apenas configuração de build: codificação UTF-8 para compilação e Javadoc, e o repasse da entrada padrão para a tarefa run (sem isso o Scanner não recebe o que é digitado). O Gradle Wrapper (gradlew, gradlew.bat e gradle/wrapper) permite compilar sem instalar o Gradle.

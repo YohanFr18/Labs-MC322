@@ -8,10 +8,11 @@ public class EstacaoEncapsulamento extends Maquina {
     
     /**
      * Construtor da Estação de Encapsulamento.
-     * Inicializa a máquina com o seu nome, capacidade, probabilidade de falha base e custo de operação padrão.
+     * Inicializa a máquina com o seu nome, capacidade, probabilidade de falha base, custo de operação padrão
+     * e 2 sensores térmicos (um na selagem e outro na cura do invólucro).
      */
     public EstacaoEncapsulamento() {
-        super("Estacao de Encapsulamento", 760, 0.08f, 50.0);
+        super("Estacao de Encapsulamento", 760, 0.08f, 50.0, 2);
     }
 
     /**

@@ -195,7 +195,6 @@ public class Main {
                     System.out.println("Nenhuma alteração foi realizada no estoque ou orçamento.");
                 } catch (MaquinaIndisponivelException e) {
                     System.out.println("ERRO ===\nProdução interrompida: " + e.getMessage());
-                    System.out.println("Realize a manutenção da máquina na seção de Auditoria.");
                 } catch (DemandaInvalidaException e) {
                     System.out.println("ERRO ===\n" + e.getMessage());
                 } catch (PlantaException e) {
@@ -269,6 +268,45 @@ public class Main {
     }
 
     /**
+     * Controla o submenu da linha de produção: mostra as estações que a compõem,
+     * permite ligar ou desligar cada uma e exibe a auditoria estrutural
+     * (linha, estações e componentes internos).
+     *
+     * @param sc Scanner para ler as interações do usuário.
+     * @param gerenciador Instância ativa do gerenciador de produção.
+     */
+    static void menuLinha(Scanner sc, GerenciadorProducao gerenciador) {
+        while (true) {
+            imprimirSecao("LINHA DE PRODUÇÃO");
+            System.out.println("""
+                    1 - Ver estações da linha
+                    2 - Ligar/desligar uma estação
+                    3 - Auditoria estrutural (Linha > Estações > Componentes)
+                    0 - Voltar
+                    """);
+            int opcao = lerInteiro(sc, "Escolha: ");
+            if (opcao == 0) {
+                return;
+            } else if (opcao == 1) {
+                gerenciador.listarMaquinas();
+            } else if (opcao == 2) {
+                gerenciador.listarMaquinas();
+                int total = gerenciador.getQuantidadeMaquinas();
+                int numero = lerInteiro(sc, "Número da estação (1-" + total + "): ");
+                if (numero < 1 || numero > total) {
+                    System.out.println("Operação cancelada: essa estação não existe.");
+                    continue;
+                }
+                gerenciador.alternarEstadoMaquina(numero);
+            } else if (opcao == 3) {
+                gerenciador.exibirAuditoriaEstrutural();
+            } else {
+                System.out.println("Opção inválida.");
+            }
+        }
+    }
+
+    /**
      * Controla o submenu focado na auditoria da fábrica, permitindo inspecionar máquinas, produtos
      * e executar a manutenção preventiva do equipamento.
      *
@@ -279,7 +317,7 @@ public class Main {
         while (true) {
             imprimirSecao("AUDITORIA E MANUTENÇÃO");
             System.out.println(" 1 - Relatório geral da planta");
-            System.out.println(" 2 - Detalhar máquinas");
+            System.out.println(" 2 - Auditoria estrutural (Linha > Estações > Componentes)");
             System.out.println(" 3 - Detalhar produtos");
             System.out.printf(" 4 - Manutenção das máquinas (R$ %.2f por máquina)%n", GerenciadorProducao.CUSTO_MANUTENCAO);
             System.out.println(" 0 - Voltar");
@@ -291,7 +329,7 @@ public class Main {
             } else if (opcao == 1) {
                 gerenciador.gerarAuditoriaGeral();
             } else if (opcao == 2) {
-                gerenciador.detalharMaquinas();
+                gerenciador.exibirAuditoriaEstrutural();
             } else if (opcao == 3) {
                 gerenciador.detalharProdutos();
             } else if (opcao == 4) {
@@ -362,6 +400,7 @@ public class Main {
                     4 - Comprar matéria-prima
                     5 - Gerenciar estratégia
                     6 - Auditoria e manutenção
+                    7 - Linha de produção
                     0 - Sair
                     """);
 
@@ -386,12 +425,13 @@ public class Main {
                 }
                 case 5 -> menuEstrategia(sc, gerenciador);
                 case 6 -> menuAuditoria(sc, gerenciador);
+                case 7 -> menuLinha(sc, gerenciador);
                 case 0 -> {
                     System.out.println("Desligando a linha de litografia. Até a próxima, SMART FOUNDRY!");
                     sc.close();
                     return;
                 }
-                default -> System.out.println("Opção inválida. Selecione uma ação de 0 a 6.");
+                default -> System.out.println("Opção inválida. Selecione uma ação de 0 a 7.");
             }
         }
     }

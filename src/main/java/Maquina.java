@@ -3,13 +3,22 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * Classe abstrata que representa uma máquina genérica na linha de produção.
- * Fornece a infraestrutura comum para o estado, saúde operacional, desgaste,
- * auditoria e composição estrita das suas partes internas.
+ * Classe abstrata que representa uma estação genérica da linha de produção.
+ * Concentra o estado comum (ligada, saúde, desgaste, falha) e é o Todo de uma
+ * composição estrita com suas partes internas: um {@link MotorEsteira} (1:1),
+ * uma {@link CamaraVaco} (1:1) e vários {@link SensorTermico} (1:N).
+ *
+ * <p>As partes são criadas no construtor e nunca saem da máquina: não há
+ * getters para elas. Quem usa a máquina conversa só com ela, e a máquina
+ * delega às partes (Lei de Deméter).</p>
  *
  * @author Victor Rimes e Yohan Rocha
  */
 public abstract class Maquina implements Auditavel {
+    private static final double LIMIAR_CRITICO = 30.0;
+    // Acréscimo na probabilidade de falha quando algum sensor indica superaquecimento
+    private static final float PENALIDADE_SUPERAQUECIMENTO = 0.15f;
+
     private String nome;
     private boolean ligada;
     private int capacidadeMaxima;
@@ -17,26 +26,29 @@ public abstract class Maquina implements Auditavel {
     private double custoOperacao;
     private Random randomNum;
     private double saude;
-    private static final double LIMIAR_CRITICO = 30.0;
     private float multiplicadorFalhaCenario;
 
-    // --- Composição Estrita (1:1 e 1:N) ---
+    // Composição estrita: partes 1:1 e 1:N
     private MotorEsteira motor;
     private CamaraVaco camara;
     private List<SensorTermico> sensores;
 
     /**
-     * Construtor da Máquina.
-     * Inicializa a saúde a 100%, o multiplicador de falha e instancia estritamente
-     * as partes internas (Item 5: Fases de Construção).
+     * Cria a máquina com saúde 100%, desligada, e instancia ela mesma todas as
+     * suas partes internas. Recebe só valores primitivos de configuração, para
+     * que nenhuma parte seja criada fora da máquina nem compartilhada com outra.
      *
      * @param nome Nome identificador da máquina.
-     * @param capacidadeMaxima Limite máximo de processamento (se aplicável).
-     * @param probabilidadeFalha Risco base inerente de a máquina cometer um erro durante a operação.
-     * @param custoOperacao Custo financeiro debitado do orçamento a cada ciclo de operação.
-     * @param qtdSensores Número de sensores térmicos a serem instalados (configuração base para as partes).
+     * @param capacidadeMaxima Limite máximo de processamento.
+     * @param probabilidadeFalha Risco base de a máquina falhar durante a operação.
+     * @param custoOperacao Custo debitado do budget a cada unidade processada.
+     * @param qtdSensores Número de sensores térmicos instalados (pelo menos 1).
+     * @throws IllegalArgumentException Se {@code qtdSensores} for menor que 1.
      */
     public Maquina(String nome, int capacidadeMaxima, float probabilidadeFalha, double custoOperacao, int qtdSensores) {
+        if (qtdSensores < 1) {
+            throw new IllegalArgumentException("Uma máquina precisa de pelo menos 1 sensor térmico: " + qtdSensores);
+        }
         this.nome = nome;
         this.ligada = false;
         this.capacidadeMaxima = capacidadeMaxima;
@@ -46,11 +58,10 @@ public abstract class Maquina implements Auditavel {
         this.saude = 100.0;
         this.multiplicadorFalhaCenario = 1.0f;
 
-        // Item 5: A máquina instancia as suas próprias partes. O ciclo de vida pertence à máquina.
+        // A máquina cria as próprias partes: o ciclo de vida delas é o da máquina
         this.motor = new MotorEsteira();
         this.camara = new CamaraVaco();
         this.sensores = new ArrayList<>();
-        
         for (int i = 0; i < qtdSensores; i++) {
             this.sensores.add(new SensorTermico("Sensor-" + (i + 1)));
         }
@@ -66,34 +77,52 @@ public abstract class Maquina implements Auditavel {
     }
 
     /**
-     * Item 6: Uma parte quebrada afeta o Todo.
-     * Verifica se a máquina sofreu avaria total (saúde zerada) ou se alguma das 
-     * partes essenciais falhou gravemente.
-     * 
+     * Verifica se a máquina está parada, seja pela saúde zerada, seja por uma
+     * parte essencial em falha: motor, câmara de vácuo ou mais da metade dos
+     * sensores térmicos.
+     *
      * @return {@code true} se a máquina estiver quebrada.
      */
     public boolean estaQuebrada() {
-        if (this.saude <= 0.0) {
-            return true;
-        }
-
-        // Propagação do estado: se o motor ou a câmara falham, a máquina inteira pára.
-        if (motor.isEmFalha() || camara.isDespressurizada()) {
-            return true;
-        }
-
-        // Se mais de 50% dos sensores estiverem em falha, a máquina é considerada inoperante.
-        long sensoresInoperantes = sensores.stream().filter(SensorTermico::isFalhou).count();
-        if (sensoresInoperantes > (sensores.size() / 2)) {
-            return true;
-        }
-
-        return false;
+        return descreverAvaria() != null;
     }
 
     /**
-     * Aplica um desgaste influenciado pela severidade do cenário ativo.
-     * O desgaste espalha-se também pelas partes internas.
+     * Descreve por que a máquina está parada, para as mensagens de erro e a
+     * auditoria. A causa vem das partes, sem expor as partes em si.
+     *
+     * @return O motivo da avaria, ou {@code null} se a máquina não estiver quebrada.
+     */
+    public String descreverAvaria() {
+        if (this.saude <= 0.0) {
+            return "saúde em 0%";
+        }
+        if (motor.isEmFalha()) {
+            return "motor da esteira em falha crítica";
+        }
+        if (camara.isDespressurizada()) {
+            return "câmara de vácuo despressurizada";
+        }
+        int sensoresInoperantes = contarSensoresInoperantes();
+        if (sensoresInoperantes > sensores.size() / 2) {
+            return sensoresInoperantes + " de " + sensores.size() + " sensores térmicos inoperantes";
+        }
+        return null;
+    }
+
+    private int contarSensoresInoperantes() {
+        int inoperantes = 0;
+        for (SensorTermico s : sensores) {
+            if (s.isFalhou()) {
+                inoperantes++;
+            }
+        }
+        return inoperantes;
+    }
+
+    /**
+     * Aplica o desgaste de um ciclo, influenciado pela severidade do cenário.
+     * O desgaste também é repassado a todas as partes internas.
      *
      * @param multiplicadorCenario Fator multiplicativo sobre o desgaste base gerado.
      */
@@ -101,33 +130,32 @@ public abstract class Maquina implements Auditavel {
         double perda = (randomNum.nextDouble() * 3.0) * multiplicadorCenario;
         this.saude = Math.max(0.0, this.saude - perda);
 
-        // Propaga o desgaste mecânico e térmico para as partes
         motor.aumentarDesgaste(multiplicadorCenario);
-        camara.desgastarVedações(multiplicadorCenario);
+        camara.desgastarVedacoes(multiplicadorCenario);
         for (SensorTermico s : sensores) {
             s.aumentarDesgaste(multiplicadorCenario);
         }
     }
 
     /**
-     * Item 7: Lei de Deméter (Desacoplamento).
-     * O sistema exterior não sabe que os sensores existem, mas pode perguntar à máquina
-     * se a temperatura global está estável.
-     * 
-     * @return {@code true} se nenhum sensor relatar sobreaquecimento.
+     * Pede uma leitura a todos os sensores e informa se a temperatura está
+     * dentro do limite. Quem chama não precisa saber que os sensores existem.
+     *
+     * @return {@code true} se nenhum sensor indicar superaquecimento.
      */
     public boolean isTemperaturaEstavel() {
+        boolean estavel = true;
+        // Lemos todos os sensores (sem parar no primeiro) para atualizar todas as leituras
         for (SensorTermico s : sensores) {
-            if (s.isSobreaquecido()) {
-                return false;
+            if (s.isSuperaquecido()) {
+                estavel = false;
             }
         }
-        return true;
+        return estavel;
     }
 
     /**
-     * Item 7: Lei de Deméter (Desacoplamento).
-     * Delega a reinicialização da pressão para a câmara de vácuo interna.
+     * Delega à câmara de vácuo interna a tentativa de restaurar a pressão.
      */
     public void recalibrarPressaoCamara() {
         camara.repressurizar();
@@ -139,72 +167,137 @@ public abstract class Maquina implements Auditavel {
     }
 
     /**
-     * Define a saúde da máquina. Quando reparada (100%), repara em cascata
-     * as partes que compõem a máquina.
-     *
-     * @param saude Nova saúde da máquina.
+     * Faz a manutenção completa: a saúde volta a 100% e todas as partes
+     * internas são reparadas em cascata.
      */
-    public void setSaude(double saude) { 
-        this.saude = Math.min(100.0, Math.max(0.0, saude)); 
-        
-        // Reparação em cascata das partes (Ownership do ciclo de vida)
-        if (this.saude == 100.0) {
-            motor.reparar();
-            camara.reparar();
-            for (SensorTermico s : sensores) {
-                s.reparar();
-            }
+    public void reparar() {
+        this.saude = 100.0;
+        motor.reparar();
+        camara.reparar();
+        for (SensorTermico s : sensores) {
+            s.reparar();
         }
     }
 
     /**
-     * Calcula se ocorreu uma falha na operação.
+     * Sorteia se ocorreu uma falha na operação, usando a probabilidade base da máquina.
+     *
+     * @return {@code true} se houve falha.
      */
     protected boolean verificarFalha() {
+        return verificarFalha(this.probabilidadeFalha);
+    }
+
+    /**
+     * Sorteia se ocorreu uma falha a partir de uma probabilidade informada pela
+     * estação (por exemplo, a de rejeição na metrologia). O desgaste, o
+     * superaquecimento e o cenário aumentam essa probabilidade.
+     *
+     * @param probabilidadeBase Probabilidade de falha antes dos acréscimos, entre 0 e 1.
+     * @return {@code true} se houve falha; sempre {@code true} se a máquina estiver quebrada.
+     */
+    protected boolean verificarFalha(float probabilidadeBase) {
         if (estaQuebrada()) {
             return true;
         }
         float acrescimoDesgaste = (float) ((100.0 - this.saude) / 100.0) * 0.4f;
-        float probabilidadeReal = Math.min(1.0f, (this.probabilidadeFalha + acrescimoDesgaste) * multiplicadorFalhaCenario);
+        float acrescimoTemperatura = isTemperaturaEstavel() ? 0.0f : PENALIDADE_SUPERAQUECIMENTO;
+        float probabilidadeReal = Math.min(1.0f,
+                (probabilidadeBase + acrescimoDesgaste + acrescimoTemperatura) * multiplicadorFalhaCenario);
         return randomNum.nextFloat() <= probabilidadeReal;
     }
 
+    /**
+     * Gera o diagnóstico da máquina e, em cascata, o de cada parte interna,
+     * uma por linha e indentadas abaixo da máquina.
+     *
+     * @return Relatório com várias linhas: a máquina e depois suas partes.
+     */
     @Override
     public String gerarRelatorioDiagnostico() {
         String estado;
         if (estaQuebrada()) {
-            estado = "AVARIADA/QUEBRADA";
+            estado = "PARADA (" + descreverAvaria() + ")";
         } else if (precisaManutencao()) {
-            estado = "REQUER MANUTENCAO";
+            estado = "REQUER MANUTENÇÃO";
         } else {
             estado = "OPERACIONAL";
         }
 
-        // Auditoria em cascata: O Todo reporta o seu estado e pede o estado às suas Partes (Ponto 10)
-        StringBuilder sb = new StringBuilder();
-        sb.append(String.format("[%s] %s | Saúde: %.1f%% | Estado: %s\n", 
-            getTipo(), this.nome, this.saude, estado));
-        
-        sb.append("    -> Motor: ").append(motor.obterStatus()).append("\n");
-        sb.append("    -> Câmara: ").append(camara.obterStatus()).append("\n");
-        
+        String relatorio = String.format("[%s] %s | Saúde: %.1f%% | Ligada: %s | Estado: %s",
+                getTipo(), this.nome, this.saude, this.ligada ? "sim" : "não", estado);
+        relatorio += "\n    > " + motor.obterStatus();
+        relatorio += "\n    > " + camara.obterStatus();
         for (SensorTermico s : sensores) {
-            sb.append("    -> ").append(s.obterStatus()).append("\n");
+            relatorio += "\n    > " + s.obterStatus();
         }
-        
-        return sb.toString();
+        return relatorio;
     }
 
+    /**
+     * Processa um único wafer/produto nesta fase específica da linha de montagem.
+     *
+     * @param produto Instância do produto que está passando pela máquina.
+     * @return {@code true} se o processamento avançou com sucesso, {@code false} em caso de bloqueio ou erro grave.
+     */
     public abstract boolean processar(Produto produto);
+
+    /**
+     * Retorna o tipo funcional da máquina para fins de registro e auditoria.
+     *
+     * @return String identificando o tipo (ex: "Processamento", "Inspeção").
+     */
     public abstract String getTipo();
 
+    /**
+     * Liga a máquina; só máquinas ligadas processam produtos.
+     */
     public void ligar() { ligada = true; }
+
+    /**
+     * Desliga a máquina, tirando-a da linha de produção.
+     */
     public void desligar() { ligada = false; }
-    
+
+    /**
+     * Retorna o nome da máquina.
+     *
+     * @return Nome identificador da máquina.
+     */
     public String getNome() { return nome; }
+
+    /**
+     * Retorna quanto a máquina custa a cada unidade processada.
+     *
+     * @return Custo de operação, em reais.
+     */
     public double getCustoOperacao() { return custoOperacao; }
+
+    /**
+     * Informa se a máquina está ligada.
+     *
+     * @return {@code true} se a máquina estiver ligada.
+     */
     public boolean estaLigada() { return ligada; }
+
+    /**
+     * Retorna a probabilidade base de falha, sem desgaste nem multiplicador de cenário.
+     *
+     * @return Probabilidade base de falha, entre 0 e 1.
+     */
     public float getProbabilidadeFalha() { return probabilidadeFalha; }
+
+    /**
+     * Retorna a capacidade máxima de processamento da máquina.
+     *
+     * @return Capacidade máxima de processamento.
+     */
     public int getCapacidadeMaxima() { return capacidadeMaxima; }
+
+    /**
+     * Retorna a saúde atual da máquina; com 0% ela está quebrada.
+     *
+     * @return Saúde atual, entre 0 e 100.
+     */
     public double getSaude() { return saude; }
 }

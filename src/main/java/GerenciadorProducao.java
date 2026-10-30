@@ -1,9 +1,13 @@
 import java.util.ArrayList;
+import java.util.List;
 
 /**
- * Coordena a planta: guarda as demandas, as máquinas, o estoque de wafer,
- * o budget e o armazém de produtos fabricados, e executa as operações de
- * negócio (fabricar, comprar matéria-prima, manter máquinas).
+ * Coordena a planta: guarda as demandas, a linha de produção, o estoque de
+ * wafer, o budget e o armazém de produtos fabricados, e executa as operações
+ * de negócio (fabricar, comprar matéria-prima, manter máquinas).
+ *
+ * <p>As máquinas ficam numa {@link LinhaDeProducao}. O gerenciador conversa
+ * apenas com a linha e com as máquinas, nunca com as partes internas delas.</p>
  *
  * <p>É o contexto do padrão Strategy: a {@link EstrategiaProducao} ativa
  * apenas escolhe qual demanda produzir; quem fabrica e movimenta o budget é
@@ -23,7 +27,6 @@ public class GerenciadorProducao {
 
     private ArrayList<Demanda> demandas;
     private ArrayList<Produto> produtosFabricados;
-    // Substituição direta do ArrayList pelo Agrupador estrutural
     private LinhaDeProducao linhaPrincipal;
     private MateriaPrima materiaPrima;
     private double budget;
@@ -31,8 +34,8 @@ public class GerenciadorProducao {
     private EstrategiaProducao estrategiaAtual;
 
     /**
-     * Monta a planta com as três estações (litografia, encapsulamento e
-     * metrologia) já ligadas e calibradas para o cenário escolhido.
+     * Monta a planta com uma linha de produção de três estações (litografia,
+     * encapsulamento e metrologia) já ligadas e calibradas para o cenário escolhido.
      *
      * @param materiaPrima Estoque de wafer usado na produção.
      * @param cenario Cenário de operação, que define o budget inicial e os
@@ -44,14 +47,13 @@ public class GerenciadorProducao {
         this.budget = cenario.getBudgetInicial();
         demandas = new ArrayList<>();
         produtosFabricados = new ArrayList<>();
-        
-        // Inicialização da Linha de Produção
-        linhaPrincipal = new LinhaDeProducao();
+
+        // As estações são criadas aqui e adicionadas à linha (agregação, não composição)
+        linhaPrincipal = new LinhaDeProducao("Linha Principal");
         linhaPrincipal.adicionarMaquina(new EstacaoLitografia());
         linhaPrincipal.adicionarMaquina(new EstacaoEncapsulamento());
         linhaPrincipal.adicionarMaquina(new EstacaoMetrologia());
-        
-        // Acesso indireto protegido
+
         for (Maquina m : linhaPrincipal.getMaquinas()) {
             m.ligar();
             m.setMultiplicadorFalhaCenario(cenario.getMultiplicadorFalha());
@@ -178,14 +180,13 @@ public class GerenciadorProducao {
     }
 
     /**
-     * Imprime o relatório de auditoria de todas as máquinas e produtos.
+     * Imprime o relatório de auditoria da linha de produção (com máquinas e
+     * partes, em cascata) e de todos os produtos.
      */
     public void gerarAuditoriaGeral() {
         ArrayList<Auditavel> componentes = new ArrayList<>();
-        // Delegação para o agrupador estrutural
-        for (Maquina m : linhaPrincipal.getMaquinas()) {
-            componentes.add(m);
-        }
+        // A linha também é Auditavel: ela mesma repassa a auditoria às máquinas
+        componentes.add(linhaPrincipal);
         for (Produto p : produtosFabricados) {
             componentes.add(p);
         }
@@ -193,14 +194,65 @@ public class GerenciadorProducao {
     }
 
     /**
-     * Imprime o relatório de auditoria apenas das máquinas.
+     * Imprime a auditoria estrutural da linha: a linha, cada estação e as
+     * partes internas de cada estação, em texto hierárquico e indentado.
      */
-    public void detalharMaquinas() {
-        ArrayList<Auditavel> componentes = new ArrayList<>();
+    public void exibirAuditoriaEstrutural() {
+        System.out.println("=== AUDITORIA ESTRUTURAL (Linha > Estações > Componentes) ===");
+        System.out.println(linhaPrincipal.gerarRelatorioDiagnostico());
+    }
+
+    /**
+     * Retorna quantas estações a linha de produção tem.
+     *
+     * @return Quantidade de estações na linha.
+     */
+    public int getQuantidadeMaquinas() {
+        return linhaPrincipal.getMaquinas().size();
+    }
+
+    /**
+     * Imprime um resumo numerado das estações da linha: tipo, se está ligada,
+     * saúde e estado.
+     */
+    public void listarMaquinas() {
+        System.out.println(linhaPrincipal.getNome() + ":");
+        int numero = 1;
         for (Maquina m : linhaPrincipal.getMaquinas()) {
-            componentes.add(m);
+            String estado;
+            if (m.estaQuebrada()) {
+                estado = "PARADA: " + m.descreverAvaria();
+            } else if (m.precisaManutencao()) {
+                estado = "Requer manutenção";
+            } else {
+                estado = "OK";
+            }
+            System.out.printf("%d - %-25s | %-13s | %-9s | Saúde: %5.1f%% | %s%n", numero, m.getNome(), m.getTipo(),
+                    m.estaLigada() ? "Ligada" : "Desligada", m.getSaude(), estado);
+            numero++;
         }
-        exibirRelatorioAuditoria("AUDITORIA DAS MÁQUINAS", componentes);
+    }
+
+    /**
+     * Liga a estação se ela estiver desligada, ou desliga se estiver ligada.
+     * Uma estação desligada bloqueia a fabricação até ser ligada de novo.
+     *
+     * @param numero Número da estação, como mostrado em {@link #listarMaquinas()} (começa em 1).
+     * @throws IllegalArgumentException Se não existir estação com esse número.
+     */
+    public void alternarEstadoMaquina(int numero) {
+        List<Maquina> maquinas = linhaPrincipal.getMaquinas();
+        if (numero < 1 || numero > maquinas.size()) {
+            throw new IllegalArgumentException("Não existe estação número " + numero + " na linha.");
+        }
+        Maquina m = maquinas.get(numero - 1);
+        if (m.estaLigada()) {
+            m.desligar();
+            System.out.println("[LINHA] " + m.getNome() + " desligada.");
+        } else {
+            m.ligar();
+            System.out.println("[LINHA] " + m.getNome() + " ligada.");
+        }
     }
 
     /**
@@ -236,8 +288,8 @@ public class GerenciadorProducao {
     }
 
     /**
-     * Recalibra (saúde volta a 100%) todas as máquinas que precisam de
-     * manutenção, cobrando {@link #CUSTO_MANUTENCAO} por máquina.
+     * Faz a manutenção (saúde volta a 100% e as partes internas são reparadas)
+     * de todas as máquinas que precisam dela, cobrando {@link #CUSTO_MANUTENCAO} por máquina.
      * A operação é tudo ou nada: se o budget não cobrir todas as máquinas,
      * nenhuma é recalibrada e nada é cobrado.
      *
@@ -266,8 +318,8 @@ public class GerenciadorProducao {
 
         for (Maquina m : precisamManutencao) {
             budget -= CUSTO_MANUTENCAO;
-            m.setSaude(100.0);
-            System.out.println("[REPARO] " + m.getNome() + " recalibrada e de volta à linha.");
+            m.reparar();
+            System.out.println("[REPARO] " + m.getNome() + " revisada (saúde e componentes internos restaurados) e de volta à linha.");
         }
     }
 
@@ -303,6 +355,7 @@ public class GerenciadorProducao {
      * @throws RecursoInsuficienteException Se faltar wafer ou budget
      *                                      (a demanda é cancelada).
      * @throws MaquinaIndisponivelException Se alguma máquina estiver quebrada
+     *                                      (inclusive por uma parte interna em falha)
      *                                      ou desligada.
      */
     public void fabricarDemanda(String modelo) {
@@ -390,11 +443,12 @@ public class GerenciadorProducao {
         // um wafer processado pela metade caso alguma esteja indisponível
         for (Maquina m : linhaPrincipal.getMaquinas()) {
             if (m.estaQuebrada()) {
-                throw new MaquinaIndisponivelException(m.getNome()
-                        + " está quebrada (saúde 0%). Faça a manutenção no menu de Auditoria.");
+                throw new MaquinaIndisponivelException(m.getNome() + " está parada: " + m.descreverAvaria()
+                        + ". Faça a manutenção em Auditoria e manutenção.");
             }
             if (!m.estaLigada()) {
-                throw new MaquinaIndisponivelException(m.getNome() + " está desligada.");
+                throw new MaquinaIndisponivelException(m.getNome()
+                        + " está desligada. Ligue-a em Linha de produção.");
             }
         }
 

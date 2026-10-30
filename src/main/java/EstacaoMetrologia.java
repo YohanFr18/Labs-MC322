@@ -8,9 +8,10 @@ public class EstacaoMetrologia extends Maquina {
     
     /**
      * Construtor da Estação de Metrologia com custos e taxa de falha pré-definidos.
+     * Tem 3 sensores térmicos, já que a dilatação térmica distorce as medições.
      */
     public EstacaoMetrologia() {
-        super("Estacao de Metrologia", 760, 0.1f, 100.0);
+        super("Estacao de Metrologia", 760, 0.1f, 100.0, 3);
     }
 
     /**

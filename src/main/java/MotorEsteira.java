@@ -1,11 +1,12 @@
 /**
- * Representa o motor responsável por movimentar os wafers dentro da máquina.
- * É uma parte essencial (1:1) do ciclo de vida da máquina.
+ * Representa o motor que movimenta os wafers dentro de uma estação.
+ * É uma parte essencial (1:1) da {@link Maquina}: criado no construtor dela
+ * e sem existência fora dela.
  *
  * @author Victor Rimes e Yohan Rocha
  */
 public class MotorEsteira {
-    
+
     private double desgasteAcumulado;
     private static final double LIMITE_FALHA = 100.0;
 
@@ -26,29 +27,28 @@ public class MotorEsteira {
     }
 
     /**
-     * Aumenta o desgaste do motor com base no cenário operacional.
+     * Aumenta o desgaste do motor a cada ciclo, conforme o cenário de operação.
      *
      * @param multiplicadorCenario Fator multiplicativo de desgaste.
      */
     public void aumentarDesgaste(double multiplicadorCenario) {
-        // O motor desgasta-se um pouco a cada ciclo
         this.desgasteAcumulado += (2.5 * multiplicadorCenario);
     }
 
     /**
-     * Repara o motor, devolvendo o desgaste ao estado inicial (0.0).
+     * Repara o motor, zerando o desgaste acumulado.
      */
     public void reparar() {
         this.desgasteAcumulado = 0.0;
     }
 
     /**
-     * Devolve o estado atual do motor para ser utilizado no relatório de auditoria em cascata.
+     * Retorna o estado atual do motor para a auditoria em cascata.
      *
-     * @return Uma string formatada com a percentagem de desgaste e o estado.
+     * @return Texto com o estado e a porcentagem de desgaste.
      */
     public String obterStatus() {
-        String estado = isEmFalha() ? "FALHA CRITICA" : "A Funcionar";
-        return String.format("%s (Desgaste: %.1f%%)", estado, Math.min(this.desgasteAcumulado, 100.0));
+        String estado = isEmFalha() ? "FALHA CRÍTICA" : "Funcionando";
+        return String.format("Motor da esteira: %s (Desgaste: %.1f%%)", estado, Math.min(this.desgasteAcumulado, 100.0));
     }
 }

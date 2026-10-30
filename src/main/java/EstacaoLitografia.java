@@ -8,9 +8,10 @@ public class EstacaoLitografia extends Maquina {
     
     /**
      * Construtor da Estação de Litografia com custos e taxa de falha pré-definidos.
+     * Tem 4 sensores térmicos, porque a exposição UV é a etapa mais sensível à temperatura.
      */
     public EstacaoLitografia() {
-        super("Estacao de Litografia UV", 760, 0.15f, 75.0);
+        super("Estacao de Litografia UV", 760, 0.15f, 75.0, 4);
     }
 
     /**

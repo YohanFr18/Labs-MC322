@@ -2,13 +2,15 @@ import java.util.Random;
 
 /**
  * Representa um sensor térmico interno da máquina.
- * É utilizado numa relação 1:N com a máquina principal, existindo várias instâncias
- * espalhadas pela linha para garantir o controlo de temperatura.
- * 
+ * Cada {@link Maquina} tem vários sensores (relação 1:N), criados no
+ * construtor dela, para monitorar a temperatura do processo.
+ *
  * @author Victor Rimes e Yohan Rocha
  */
 public class SensorTermico {
-    
+
+    private static final double TEMPERATURA_LIMITE = 90.0;
+
     private String id;
     private double calibracao;
     private double temperaturaAtual;
@@ -16,8 +18,8 @@ public class SensorTermico {
 
     /**
      * Construtor do sensor.
-     * 
-     * @param id Identificador único do sensor (ex: "Sensor-1").
+     *
+     * @param id Identificador do sensor dentro da máquina (ex.: "Sensor-1").
      */
     public SensorTermico(String id) {
         this.id = id;
@@ -27,33 +29,36 @@ public class SensorTermico {
     }
 
     /**
-     * Verifica se o sensor perdeu a calibração na totalidade, falhando.
-     * 
-     * @return {@code true} se a calibração for igual ou inferior a 0.
+     * Verifica se o sensor perdeu toda a calibração e deixou de funcionar.
+     *
+     * @return {@code true} se a calibração for menor ou igual a 0.
      */
     public boolean isFalhou() {
         return this.calibracao <= 0.0;
     }
 
     /**
-     * Simula a leitura da temperatura atual e verifica se está acima do limite seguro (90ºC).
-     * Sensores descalibrados têm maior probabilidade de gerar leituras falsas altas.
-     * 
-     * @return {@code true} se relatar sobreaquecimento.
+     * Faz uma nova leitura de temperatura e verifica se ela passou do limite
+     * seguro (90 ºC). Quanto pior a calibração, maior o erro da leitura.
+     * Um sensor que falhou sempre indica superaquecimento.
+     *
+     * @return {@code true} se a leitura indicar superaquecimento.
      */
-    public boolean isSobreaquecido() {
-        if (isFalhou()) return true;
-        
-        // Simulação básica: temperatura flutua mais se a calibração estiver baixa
+    public boolean isSuperaquecido() {
+        if (isFalhou()) {
+            return true;
+        }
+
+        // A temperatura oscila mais quando a calibração está baixa
         double erroLeitura = (100.0 - this.calibracao) * 0.5;
         this.temperaturaAtual = 70.0 + geradorTemperaturas.nextDouble() * 10.0 + erroLeitura;
-        
-        return this.temperaturaAtual > 90.0;
+
+        return this.temperaturaAtual > TEMPERATURA_LIMITE;
     }
 
     /**
-     * Desgasta a calibração do sensor ao longo do tempo.
-     * 
+     * Reduz a calibração do sensor a cada ciclo de uso.
+     *
      * @param multiplicadorCenario Fator multiplicativo de desgaste.
      */
     public void aumentarDesgaste(double multiplicadorCenario) {
@@ -64,7 +69,7 @@ public class SensorTermico {
     }
 
     /**
-     * Recalibra o sensor para 100%, restaurando o seu funcionamento perfeito.
+     * Recalibra o sensor para 100%, restaurando o funcionamento normal.
      */
     public void reparar() {
         this.calibracao = 100.0;
@@ -72,15 +77,16 @@ public class SensorTermico {
     }
 
     /**
-     * Devolve o estado do sensor para ser incluído no relatório de auditoria do Todo.
-     * 
-     * @return String formatada com o ID do sensor, a temperatura e a sua calibração.
+     * Retorna o estado do sensor para a auditoria em cascata.
+     *
+     * @return Texto com o identificador, a calibração e a última leitura.
      */
     public String obterStatus() {
         if (isFalhou()) {
-            return String.format("[%s] INOPERANTE (Descalibrado)", this.id);
+            return String.format("%s: INOPERANTE (descalibrado)", this.id);
         }
-        return String.format("[%s] Calibração: %.1f%% | Leitura: %.1fºC", 
-                this.id, this.calibracao, this.temperaturaAtual);
+        String alerta = this.temperaturaAtual > TEMPERATURA_LIMITE ? " SUPERAQUECIDO" : "";
+        return String.format("%s: Calibração: %.1f%% | Leitura: %.1f ºC%s",
+                this.id, this.calibracao, this.temperaturaAtual, alerta);
     }
 }
