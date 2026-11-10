@@ -11,3 +11,6 @@ build/
 .classpath
 .project
 .settings/
+
+# Estado salvo pela aplicação (gerado em tempo de execução)
+dados/
